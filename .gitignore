@@ -1,69 +1,109 @@
-# Prerequisites
-*.d
+# Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+bld/
+[Bb]in/
+[Oo]bj/
+out/
 
-# Compiled Object files
-*.slo
-*.lo
-*.o
-*.obj
+# Visual Studio files
+.vs/
+*.user
+*.userosscache
+*.suo
+*.userprefs
+*.sln.docstates
 
-# Precompiled Headers
-*.gch
-*.pch
+# Visual Studio Code
+.vscode/
 
-# Linker files
-*.ilk
+# Rider / JetBrains
+.idea/
+*.sln.iml
+*.DotSettings.user
 
-# Debugger Files
-*.pdb
+# NuGet
+*.nupkg
+*.snupkg
+.nuget/
+packages/
+project.lock.json
+project.assets.json
 
-# Compiled Dynamic libraries
-*.so
-*.dylib
+# .NET build files
 *.dll
-*.so.*
-
-
-# Fortran module files
-*.mod
-*.smod
-
-# Compiled Static libraries
-*.lai
-*.la
-*.a
-*.lib
-
-# Executables
 *.exe
-*.out
-*.app
+*.pdb
+*.cache
+*.log
 
-# Build directories
-build/
-Build/
-build-*/
+# Test results
+TestResults/
+*.trx
+*.coverage
+*.coveragexml
 
-# CMake generated files
-CMakeFiles/
-CMakeCache.txt
-cmake_install.cmake
-Makefile
-install_manifest.txt
-compile_commands.json
+# ASP.NET Core
+appsettings.Development.json
+appsettings.*.Development.json
+
+# User secrets
+secrets.json
+
+# Entity Framework
+*.mdf
+*.ldf
+
+# Publish output
+publish/
+*.pubxml
+*.publishproj
+
+# Docker
+docker-compose.override.yml
+
+# Node (if using frontend with .NET)
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# OS files
+.DS_Store
+Thumbs.db
 
 # Temporary files
 *.tmp
-*.log
+*.temp
 *.bak
 *.swp
 
-# vcpkg
-vcpkg_installed/
+# Generated documentation
+*.xml
 
-# debug information files
-*.dwo
+# Coverage tools
+coverage/
+.coverage/
 
-# test output & cache
-Testing/
-.cache/
+# Azure
+.azure/
+.azurefunctions/
+
+# MAUI
+Platforms/**/bin/
+Platforms/**/obj/
+
+# Blazor WASM
+wwwroot/_framework/
+
+# Local tools
+.tools/
+
+# Rider caches
+.idea/
+
+# Backup files
+*~
