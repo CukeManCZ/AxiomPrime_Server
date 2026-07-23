@@ -1,3 +1,4 @@
+using AxiomPrime_DTOs.Inventory;
 using Utilities.DataStructures;
 
 public static class InventoryMapper

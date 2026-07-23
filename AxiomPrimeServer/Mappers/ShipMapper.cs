@@ -1,3 +1,4 @@
+using AxiomPrime_DTOs.ShipInventory;
 using Utilities.DataStructures;
 
 public static class ShipMapper

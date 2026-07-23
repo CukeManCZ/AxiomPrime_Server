@@ -68,6 +68,11 @@ public class ShipInventoryAPI
         });*/
     }
 
+    public async Task<bool> PlaceItem(Guid shipId, Item item)
+    {
+        return await _shipService.TryPlaceItemAsync(shipId, item);
+    }
+
     public async Task<bool> RemoveItem(Guid shipId, Guid itemId)
     {
         var result = await _shipService.RemoveItemAsync(shipId, itemId);

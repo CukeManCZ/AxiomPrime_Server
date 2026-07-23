@@ -229,6 +229,26 @@ public class ShipInventoryService : IShipInventoryService
         return true;
     }
 
+    public async Task<bool> TryPlaceItemAsync(Guid shipId, Item item)
+    {
+        var ship = await GetShipAsync(shipId);
+        if(item.IsEquipped)
+            return false;
+        if (ship.IsLocked)
+            return false;
+
+        for (int x = 0; x < ship.Grid.Width; x++)
+        {
+            for (int y = 0; y < ship.Grid.Height; y++)
+            {
+                if(CanPlaceItem(ship, item, x, y))
+                    if(await TryPlaceItemAsync(shipId, item, x, y))
+                        return true;
+            }
+        }
+
+        return false;
+    }
     
     /// <summary>
     /// REMOVE ITEM (FULL GRID SCAN LIKE UNITY)
@@ -262,6 +282,12 @@ public class ShipInventoryService : IShipInventoryService
         return true;
     }
 
+    private async Task SumShipStats(Guid shipId)
+    {
+        Ship ship = await GetShipAsync(shipId);
+        //TODO stats
+    }
+
     /// <summary>
     /// GET ITEM AT POSITION
     /// </summary>
@@ -284,6 +310,8 @@ public class ShipInventoryService : IShipInventoryService
 
         return ship.Items.FirstOrDefault(i => i.Id == id);
     }
+
+    
 
     /// <summary>
     /// VALIDATION
@@ -321,5 +349,6 @@ public class ShipInventoryService : IShipInventoryService
 
         return true;
     }
+
     #endregion
 }

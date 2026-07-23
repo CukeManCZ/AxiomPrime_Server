@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using Utilities.AuthorizationTools;
+using AxiomPrime_DTOs.Inventory;
 
 [ApiController]
 [Route("inventory")]
@@ -138,6 +139,31 @@ public class InventoryController : ControllerBase
             }
         }
             
+        return BadRequest("Item not equipped");
+    }
+
+    [Authorize]
+    [HttpPost("ship/{shipId:guid}/quickEquip/{itemId:guid}")]
+    public async Task<IActionResult> QuickEquipItem(Guid shipId, Guid itemId)
+    {
+        if (!User.TryGetProfileId(out var profileId))
+            return Unauthorized();
+
+        var inventory = await m_inventoryAPI.GetAsync(profileId);
+        var item = inventory.Items.FirstOrDefault(x => x.Id == itemId);
+        var ship = await m_shipInventoryAPI.GetShipAsync(shipId);
+        if (ship.ShipInventoryId != profileId)
+            return Forbid();
+        if (item == null)
+            return Forbid();
+
+        if (!item.IsEquipped)
+        {
+            if(await m_shipInventoryAPI.PlaceItem(shipId, item))
+                if(await m_inventoryAPI.EquipItem(profileId, itemId))
+                    return Ok();
+        }
+
         return BadRequest("Item not equipped");
     }
 

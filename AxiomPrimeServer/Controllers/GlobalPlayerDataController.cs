@@ -1,3 +1,4 @@
+using AxiomPrime_DTOs.GlobalData;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 

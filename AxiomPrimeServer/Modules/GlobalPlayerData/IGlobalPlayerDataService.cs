@@ -1,3 +1,5 @@
+using AxiomPrime_DTOs.GlobalData;
+
 public interface IGlobalPlayerDataService
 {
     Task<GlobalPlayerDataDTO> GetAsync(string playerId);

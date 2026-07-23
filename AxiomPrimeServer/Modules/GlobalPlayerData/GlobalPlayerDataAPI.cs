@@ -1,3 +1,5 @@
+using AxiomPrime_DTOs.GlobalData;
+
 public class GlobalPlayerDataAPI
 {
     private readonly GlobalPlayerDataService m_globalPlayerDataService;

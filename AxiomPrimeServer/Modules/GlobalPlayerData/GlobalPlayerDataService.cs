@@ -1,3 +1,5 @@
+using AxiomPrime_DTOs.GlobalData;
+
 public class GlobalPlayerDataService : IGlobalPlayerDataService
 {
     private readonly ExperienceRepository m_experience_repository;
