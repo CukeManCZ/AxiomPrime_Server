@@ -52,12 +52,12 @@ public class GameController : ControllerBase
         Inventory inventory = await m_inventoryAPI.GetAsync(profileId);
         Item_Database? item = inventory.Items.First();
         ShipInventory shipInventory = await m_shipInventoryAPI.GetAsync(profileId);
-        Ship? ship = shipInventory.Ships.First();
+        Ship_Database? ship = shipInventory.Ships.First();
         if(item != null && ship != null)
         {
             if(!item.State.Equiped)
             {
-                if(await m_shipInventoryAPI.PlaceItem(ship.Id, item, 0, 0))
+                if(await m_shipInventoryAPI.PlaceItem(ship.Identity.Id, item, 0, 0))
                 {
                     await m_inventoryAPI.EquipItem(profileId, item.Identity.Id);
                     return Ok();
@@ -75,12 +75,12 @@ public class GameController : ControllerBase
         Inventory inventory = await m_inventoryAPI.GetAsync(profileId);
         Item_Database? item = inventory.Items.First();
         ShipInventory shipInventory = await m_shipInventoryAPI.GetAsync(profileId);
-        Ship? ship = shipInventory.Ships.First();
+        Ship_Database? ship = shipInventory.Ships.First();
         if(item != null && ship != null)
         {
             if (item.State.Equiped)
             {
-                if(await m_shipInventoryAPI.RemoveItem(ship.Id, item.Identity.Id))
+                if(await m_shipInventoryAPI.RemoveItem(ship.Identity.Id, item.Identity.Id))
                 {
                     await m_inventoryAPI.UnEquipItem(profileId, item.Identity.Id);
                     return Ok();

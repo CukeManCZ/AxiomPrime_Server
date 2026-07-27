@@ -32,17 +32,16 @@ public class ShipInventoryRepository
         return inventory;
     }
 
-    public Task<Ship> GetShipAsync(Guid shipId)
+    public Task<Ship_Database> GetShipAsync(Guid shipId)
         => m_db.Ships
             .Include(x => x.Items)
             .ThenInclude(si => si.Item)
-            .Include(x => x.Grid)
             .FirstAsync(x => x.Id == shipId);
 
     public Task SaveAsync()
         => m_db.SaveChangesAsync();
 
-    public async Task AddShipAsync(Ship ship)
+    public async Task AddShipAsync(Ship_Database ship)
     {
         m_db.Ships.Add(ship);
         await m_db.SaveChangesAsync();

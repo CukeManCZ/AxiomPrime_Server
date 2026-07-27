@@ -14,14 +14,14 @@ public class ShipInventoryService : IShipInventoryService
     public Task<ShipInventory> GetAsync(string playerId)
         => m_repo.GetAsync(playerId);
 
-    public Task<Ship> GetShipAsync(Guid shipId)
+    public Task<Ship_Database> GetShipAsync(Guid shipId)
         => m_repo.GetShipAsync(shipId);
 
     // =========================================
     // CREATE SHIP (NOW WITH LIMIT CHECK)
     // =========================================
 
-    public async Task<Ship> CreateShipAsync(string playerId, ShipGrid template)
+    public async Task<Ship_Database> CreateShipAsync(string playerId, ShipGrid template)
     {
         var inventory = await m_repo.GetAsync(playerId);
 
@@ -34,7 +34,7 @@ public class ShipInventoryService : IShipInventoryService
                 $"Ship limit reached ({currentShips}/{maxShips})"
             );
 
-        var ship = new Ship
+        var ship = new Ship_Database
         {
             Id = Guid.NewGuid(),
             ShipInventoryId = playerId,
@@ -284,7 +284,7 @@ public class ShipInventoryService : IShipInventoryService
 
     private async Task SumShipStats(Guid shipId)
     {
-        Ship ship = await GetShipAsync(shipId);
+        Ship_Database ship = await GetShipAsync(shipId);
         //TODO stats
     }
 
@@ -295,7 +295,7 @@ public class ShipInventoryService : IShipInventoryService
     /// <param name="x"></param>
     /// <param name="y"></param>
     /// <returns></returns>
-    public ShipItem? GetItemAt(Ship ship, int x, int y)
+    public ShipItem? GetItemAt(Ship_Database ship, int x, int y)
     {
         var cell = ship.Grid.Get(x, y);
 
@@ -321,7 +321,7 @@ public class ShipInventoryService : IShipInventoryService
     /// <param name="x"></param>
     /// <param name="y"></param>
     /// <returns></returns>
-    private bool CanPlaceItem(Ship ship, Item_Database item, int x, int y)
+    private bool CanPlaceItem(Ship_Database ship, Item_Database item, int x, int y)
     {
         var grid = item.Size;
 

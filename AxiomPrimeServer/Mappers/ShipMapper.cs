@@ -3,16 +3,15 @@ using Utilities.DataStructures;
 
 public static class ShipMapper
 {
-    public static ShipDto ToDto(Ship ship)
+    public static ShipDto ToDto(Ship_Database ship)
     {
         ArgumentNullException.ThrowIfNull(ship);
 
         return new ShipDto
         {
-            Id = ship.Id,
-            IsLocked = ship.IsLocked,
-            XOrigin = ship.XOrigin,
-            YOrigin = ship.YOrigin,
+            Identity = ship.Identity,
+            GeneralData = ship.GeneralData,
+            State = ship.State,
             Grid = CustomGridMapper.ToDto(ship.Grid?.ToCustomGrid() ?? new CustomGrid<string>(1, 1)),
             Items = ship.Items
                 .Select(ToDto)

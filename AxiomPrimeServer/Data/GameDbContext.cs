@@ -16,7 +16,7 @@ public class GameDbContext : DbContext
     public DbSet<Item_Database> Items { get; set; }
 
     public DbSet<ShipInventory> ShipInventories {get; set;}
-    public DbSet<Ship> Ships {get; set;}
+    public DbSet<Ship_Database> Ships {get; set;}
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -69,7 +69,7 @@ public class GameDbContext : DbContext
             .HasForeignKey(x => x.ShipInventoryId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        modelBuilder.Entity<Ship>()
+        modelBuilder.Entity<Ship_Database>()
             .HasMany(x => x.Items)
             .WithOne(x => x.Ship)
             .HasForeignKey(x => x.ShipId)
@@ -89,7 +89,17 @@ public class GameDbContext : DbContext
                 .OnDelete(DeleteBehavior.Restrict);
         });
 
-        modelBuilder.Entity<Ship>()
-            .OwnsOne(x => x.Grid);
+        modelBuilder.Entity<Ship_Database>(ship =>
+        {
+            ship.HasKey(x => x.Id);
+
+            ship.Property(x => x.Id)
+                .ValueGeneratedNever();
+
+            ship.Property(x => x.ShipDataJson)
+                .HasColumnName("ShipData")
+                .HasColumnType("jsonb")
+                .IsRequired();
+        });
     }
 }

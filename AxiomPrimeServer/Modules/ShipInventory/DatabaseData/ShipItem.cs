@@ -6,7 +6,7 @@ public class ShipItem
     public Guid Id { get; set; }
 
     public Guid ShipId { get; set; }
-    public Ship Ship { get; set; } = default!;
+    public Ship_Database Ship { get; set; } = default!;
 
     // reference to real item
     public Guid ItemId { get; set; }

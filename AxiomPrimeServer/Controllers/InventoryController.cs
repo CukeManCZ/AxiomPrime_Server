@@ -181,8 +181,8 @@ public class InventoryController : ControllerBase
             return BadRequest("Item does not exist");
 
         ShipInventory shipInventory = await m_shipInventoryAPI.GetAsync(profileId);
-        Ship? ship = null;
-        foreach(Ship s in shipInventory.Ships)
+        Ship_Database? ship = null;
+        foreach(Ship_Database s in shipInventory.Ships)
         {
             foreach(ShipItem shipItem in s.Items)
                 if(shipItem.Id == item.Id)
@@ -195,7 +195,7 @@ public class InventoryController : ControllerBase
         if(ship == null)
             return BadRequest("Item does not exist in ship");
         
-        var result = await m_shipInventoryAPI.RemoveItem(ship.Id, item.Id) && await m_inventoryAPI.UnEquipItem(profileId, itemId);
+        var result = await m_shipInventoryAPI.RemoveItem(ship.Identity.Id, item.Id) && await m_inventoryAPI.UnEquipItem(profileId, itemId);
         
         return result ? Ok() : BadRequest("Item not dequipped");
     }

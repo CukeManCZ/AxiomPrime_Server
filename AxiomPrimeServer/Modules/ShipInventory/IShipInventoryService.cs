@@ -8,13 +8,13 @@ public interface IShipInventoryService
     // =========================================
 
     Task<ShipInventory> GetAsync(string playerId);
-    Task<Ship> GetShipAsync(Guid shipId);
+    Task<Ship_Database> GetShipAsync(Guid shipId);
 
     // =========================================
     // SHIP CREATION / LIMIT SYSTEM
     // =========================================
 
-    Task<Ship> CreateShipAsync(string playerId, ShipGrid template);
+    Task<Ship_Database> CreateShipAsync(string playerId, ShipGrid template);
 
     /// <summary>
     /// Increases how many ships a player is allowed to own.
@@ -44,5 +44,5 @@ public interface IShipInventoryService
 
     Task<bool> RemoveItemAsync(Guid shipId, Guid itemId);
 
-    ShipItem? GetItemAt(Ship ship, int x, int y);
+    ShipItem? GetItemAt(Ship_Database ship, int x, int y);
 }

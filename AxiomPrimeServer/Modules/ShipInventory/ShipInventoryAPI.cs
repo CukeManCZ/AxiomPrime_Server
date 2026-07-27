@@ -21,10 +21,10 @@ public class ShipInventoryAPI
     public Task<ShipInventory> GetAsync(string playerId)
         => _shipService.GetAsync(playerId);
 
-    public Task<Ship> GetShipAsync(Guid shipId)
+    public Task<Ship_Database> GetShipAsync(Guid shipId)
         => _shipService.GetShipAsync(shipId);
 
-    public Task<ShipItem?> GetItemAt(Ship ship, int x, int y)
+    public Task<ShipItem?> GetItemAt(Ship_Database ship, int x, int y)
         => Task.FromResult(_shipService.GetItemAt(ship, x, y));
 
     #endregion
@@ -91,7 +91,7 @@ public class ShipInventoryAPI
 
     #endregion
 
-    public Task<Ship> CreateShip(string playerId, ShipGrid template)
+    public Task<Ship_Database> CreateShip(string playerId, ShipGrid template)
         => _shipService.CreateShipAsync(playerId, template);
 
     public Task AddShipSlots(string playerId, int amount)
