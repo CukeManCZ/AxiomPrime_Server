@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace AxiomPrimeServer.Migrations
 {
     [DbContext(typeof(GameDbContext))]
-    partial class GameDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260727184110_ItemJsonPayload")]
+    partial class ItemJsonPayload
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -103,13 +106,25 @@ namespace AxiomPrimeServer.Migrations
                     b.Property<string>("InventoryPlayerId")
                         .HasColumnType("text");
 
+                    b.Property<bool>("IsEquipped")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("ItemDataJson")
                         .IsRequired()
                         .HasColumnType("jsonb")
                         .HasColumnName("ItemData");
 
+                    b.Property<string>("ItemName")
+                        .HasColumnType("text");
+
+                    b.Property<int>("Level")
+                        .HasColumnType("integer");
+
                     b.Property<float>("Power")
                         .HasColumnType("real");
+
+                    b.Property<int>("Price")
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 

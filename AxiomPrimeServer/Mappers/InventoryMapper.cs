@@ -3,18 +3,17 @@ using Utilities.DataStructures;
 
 public static class InventoryMapper
 {
-    public static ItemDto ToDto(Item item)
+    public static ItemDto ToDto(Item_Database item)
     {
         ArgumentNullException.ThrowIfNull(item);
 
         return new ItemDto
         {
-            Id = item.Id,
-            Name = item.ItemName,
-            Level = item.Level,
-            Equipped = item.IsEquipped,
+            Identity = item.Identity,
+            GeneralData = item.GeneralData,
+            State = item.State,
             Size = CustomGridMapper.ToDto(item.Size?.ToCustomGrid() ?? new CustomGrid<bool>(1, 1)),
-            StatsData = ToDto(item.StatsData)
+            Stats = ToDto(item.StatsData)
         };
     }
 
@@ -45,16 +44,14 @@ public static class InventoryMapper
         return dto;
     }
 
-    public static ItemStatDto ToDto(ItemStat stat)
+    public static ItemStatDto ToDto(ItemStat_Database stat)
     {
         ArgumentNullException.ThrowIfNull(stat);
 
         return new ItemStatDto
         {
-            Name = stat.Name,
-            StatType = stat.StatType,
-            Value = stat.Value,
-            IsPercentage = stat.IsPercentage
+            Identity = stat.Identity,
+            GeneralData = stat.GeneralData
         };
     }
 }

@@ -3,8 +3,8 @@ using System.Collections.Generic;
 
 public interface IItemGenerator
 {
-    Item GenerateItem(int playerLvl);
-    Item GenerateItem(int playerLvl, ItemType itemType);
+    Item_Database GenerateItem(int playerLvl);
+    Item_Database GenerateItem(int playerLvl, ItemType itemType);
 
     void Initialize(
         List<ItemData> itemData,

@@ -27,7 +27,7 @@ public class InventoryService : IInventoryService
     #region ADD ITEM
     // =========================================================
 
-    public Task<bool> AddItem(string playerId, Item item)
+    public Task<bool> AddItem(string playerId, Item_Database item)
         => _playerLockProvider.WithLock(playerId, async () =>
         {
             var inventory = await _inventoryRepository.GetAsync(playerId);

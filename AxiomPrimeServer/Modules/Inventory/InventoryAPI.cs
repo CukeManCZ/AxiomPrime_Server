@@ -27,7 +27,7 @@ public class InventoryAPI
     #region ITEM OPERATIONS
     // =========================================================
 
-    public Task<bool> AddItem(string playerId, Item item)
+    public Task<bool> AddItem(string playerId, Item_Database item)
         => _inventoryService.AddItem(playerId, item);
 
     public Task<bool> RemoveItem(string playerId, Guid itemId)

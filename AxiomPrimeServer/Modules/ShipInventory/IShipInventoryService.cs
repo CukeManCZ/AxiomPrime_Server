@@ -39,8 +39,8 @@ public interface IShipInventoryService
     // ITEM OPERATIONS
     // =========================================
 
-    Task<bool> TryPlaceItemAsync(Guid shipId, Item item, int x, int y);
-    Task<bool> TryPlaceItemAsync(Guid shipId, Item item);
+    Task<bool> TryPlaceItemAsync(Guid shipId, Item_Database item, int x, int y);
+    Task<bool> TryPlaceItemAsync(Guid shipId, Item_Database item);
 
     Task<bool> RemoveItemAsync(Guid shipId, Guid itemId);
 

@@ -176,7 +176,7 @@ public class InventoryController : ControllerBase
 
 
         Inventory inventory = await m_inventoryAPI.GetAsync(profileId);
-        Item? item = inventory.Items.FirstOrDefault(x => x.Id == itemId);
+        Item_Database? item = inventory.Items.FirstOrDefault(x => x.Id == itemId);
         if(item == null)
             return BadRequest("Item does not exist");
 
@@ -243,7 +243,7 @@ public class InventoryController : ControllerBase
     }
     #endregion
 
-    private static bool SameSize(Item left, Item right)
+    private static bool SameSize(Item_Database left, Item_Database right)
         => left?.Size?.Width == right?.Size?.Width && left?.Size?.Height == right?.Size?.Height;
 
     //Stat computing

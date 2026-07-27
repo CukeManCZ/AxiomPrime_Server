@@ -185,7 +185,7 @@ public class ShipInventoryService : IShipInventoryService
     /// <param name="x"></param>
     /// <param name="y"></param>
     /// <returns></returns>
-    public async Task<bool> TryPlaceItemAsync(Guid shipId, Item item, int x, int y)
+    public async Task<bool> TryPlaceItemAsync(Guid shipId, Item_Database item, int x, int y)
     {
         var ship = await GetShipAsync(shipId);
 
@@ -229,7 +229,7 @@ public class ShipInventoryService : IShipInventoryService
         return true;
     }
 
-    public async Task<bool> TryPlaceItemAsync(Guid shipId, Item item)
+    public async Task<bool> TryPlaceItemAsync(Guid shipId, Item_Database item)
     {
         var ship = await GetShipAsync(shipId);
         if(item.IsEquipped)
@@ -321,7 +321,7 @@ public class ShipInventoryService : IShipInventoryService
     /// <param name="x"></param>
     /// <param name="y"></param>
     /// <returns></returns>
-    private bool CanPlaceItem(Ship ship, Item item, int x, int y)
+    private bool CanPlaceItem(Ship ship, Item_Database item, int x, int y)
     {
         var grid = item.Size;
 

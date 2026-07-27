@@ -11,7 +11,7 @@ public interface IInventoryService
     /// <summary>
     /// Adds item to inventory if space allows
     /// </summary>
-    Task<bool> AddItem(string playerId, Item item);
+    Task<bool> AddItem(string playerId, Item_Database item);
 
     /// <summary>
     /// Removes item by Id

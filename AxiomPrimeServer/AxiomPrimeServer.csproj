@@ -17,7 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\AxiomPrime_DTOs\AxiomPrime_DTOs\AxiomPrime_DTOs.csproj" />
+    <ProjectReference Include="..\..\AxiomPrime_Shared\AxiomPrime_Shared\AxiomPrime_Shared.csproj" />
   </ItemGroup>
 
 </Project>

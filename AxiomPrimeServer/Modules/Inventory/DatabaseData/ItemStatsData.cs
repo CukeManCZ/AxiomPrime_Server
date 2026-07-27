@@ -4,16 +4,16 @@ public class ItemStatsData
 {
     public string Data { get; set; } = "[]";
 
-    public void SetStats(List<ItemStat> itemStats)
+    public void SetStats(List<ItemStat_Database> itemStats)
     {
         Data = JsonSerializer.Serialize(itemStats);
     }
 
-    public List<ItemStat> GetStats()
+    public List<ItemStat_Database> GetStats()
     {
         if (string.IsNullOrWhiteSpace(Data))
-            return new List<ItemStat>();
+            return new List<ItemStat_Database>();
 
-        return JsonSerializer.Deserialize<List<ItemStat>>(Data) ?? new List<ItemStat>();
+        return JsonSerializer.Deserialize<List<ItemStat_Database>>(Data) ?? new List<ItemStat_Database>();
     }
 }

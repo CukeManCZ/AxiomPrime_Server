@@ -22,7 +22,7 @@ public class InventoryRepository
         {
             PlayerId = playerId,
             numOfItems = 20, // default max size
-            Items = new List<Item>()
+            Items = new List<Item_Database>()
         };
 
         _db.Inventories.Add(inventory);

@@ -27,13 +27,13 @@ public class ItemGenerator : IItemGenerator
     // PUBLIC API
     // =========================================================
 
-    public Item GenerateItem(int playerLvl)
+    public Item_Database GenerateItem(int playerLvl)
     {
         var type = RandomEnum<ItemType>();
         return GenerateInternal(playerLvl, type);
     }
 
-    public Item GenerateItem(int playerLvl, ItemType itemType)
+    public Item_Database GenerateItem(int playerLvl, ItemType itemType)
     {
         return GenerateInternal(playerLvl, itemType);
     }
@@ -42,7 +42,7 @@ public class ItemGenerator : IItemGenerator
     // CORE GENERATION
     // =========================================================
 
-    private Item GenerateInternal(int playerLvl, ItemType type)
+    private Item_Database GenerateInternal(int playerLvl, ItemType type)
     {
         if (playerLvl <= 1) playerLvl = 1;
 
@@ -53,7 +53,7 @@ public class ItemGenerator : IItemGenerator
 
         string subtype = GetRandomSubtype(type);
 
-        var item = new Item
+        var item = new Item_Database
         {
             Id = Guid.NewGuid(),
             Level = playerLvl,
@@ -109,9 +109,9 @@ public class ItemGenerator : IItemGenerator
     // STATS
     // =========================================================
 
-    private List<ItemStat> CreateStats(ItemType type, string subtype, float itemValue, ItemGridData size)
+    private List<ItemStat_Database> CreateStats(ItemType type, string subtype, float itemValue, ItemGridData size)
     {
-        var result = new List<ItemStat>();
+        var result = new List<ItemStat_Database>();
 
         var globalStats = _allStats
             .Where(s => s.AppliesTo.Contains("Global"))
@@ -128,7 +128,7 @@ public class ItemGenerator : IItemGenerator
         {
             float val = CalcGlobalStat(g.Name, itemValue, size.Width * size.Height);
 
-            result.Add(new ItemStat
+            result.Add(new ItemStat_Database
             {
                 Name = g.Name,
                 StatType = g.Type.ToString(),
@@ -172,7 +172,7 @@ public class ItemGenerator : IItemGenerator
             if (value <= 0)
                 continue;
 
-            result.Add(new ItemStat
+            result.Add(new ItemStat_Database
             {
                 Name = stat.Name,
                 StatType = stat.Type.ToString(),

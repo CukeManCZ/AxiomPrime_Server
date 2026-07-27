@@ -53,7 +53,7 @@ public class ShipInventoryAPI
     #region ITEM OPERATIONS
     // =========================================================
 
-    public async Task<bool> PlaceItem(Guid shipId, Item item, int x, int y)
+    public async Task<bool> PlaceItem(Guid shipId, Item_Database item, int x, int y)
     {
         var result = await _shipService.TryPlaceItemAsync(shipId, item, x, y);
             
@@ -68,7 +68,7 @@ public class ShipInventoryAPI
         });*/
     }
 
-    public async Task<bool> PlaceItem(Guid shipId, Item item)
+    public async Task<bool> PlaceItem(Guid shipId, Item_Database item)
     {
         return await _shipService.TryPlaceItemAsync(shipId, item);
     }

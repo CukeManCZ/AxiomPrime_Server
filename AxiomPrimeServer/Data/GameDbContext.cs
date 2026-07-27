@@ -13,7 +13,7 @@ public class GameDbContext : DbContext
     public DbSet<Energy> Energies {get; set;}
 
     public DbSet<Inventory> Inventories {get; set;}
-    public DbSet<Item> Items { get; set; }
+    public DbSet<Item_Database> Items { get; set; }
 
     public DbSet<ShipInventory> ShipInventories {get; set;}
     public DbSet<Ship> Ships {get; set;}
@@ -43,30 +43,17 @@ public class GameDbContext : DbContext
                 .HasPrincipalKey(x => x.PlayerId);
         });
 
-        modelBuilder.Entity<Item>(item =>
+        modelBuilder.Entity<Item_Database>(item =>
         {
-            item.Property(i => i.Id)
-                .ValueGeneratedNever();
             item.HasKey(i => i.Id);
 
-            item.Property(i => i.ItemName);
-            item.Property(i => i.Power);
-            item.Property(i => i.Level);
-            item.Property(i => i.Price);
-            item.Property(i => i.IsEquipped);
+            item.Property(i => i.Id)
+                .ValueGeneratedNever();
 
-            item.OwnsOne(i => i.StatsData, statsData =>
-            {
-                statsData.Property(x => x.Data)
-                    .HasColumnName("StatsData")
-                    .IsRequired();
-            });
-
-            item.OwnsOne(i => i.Size, size =>
-            {
-                size.Property(x => x.Width);
-                size.Property(x => x.Height);
-            });
+            item.Property(i => i.ItemDataJson)
+                .HasColumnName("ItemData")
+                .HasColumnType("jsonb")
+                .IsRequired();
 
             item.ToTable("Item");
         });

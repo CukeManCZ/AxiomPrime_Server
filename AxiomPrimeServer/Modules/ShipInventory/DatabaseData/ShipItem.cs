@@ -10,7 +10,7 @@ public class ShipItem
 
     // reference to real item
     public Guid ItemId { get; set; }
-    public Item Item { get; set; } = default!;
+    public Item_Database Item { get; set; } = default!;
 
     // position inside ship grid
     public int X { get; set; }
