@@ -1,4 +1,5 @@
 using AxiomPrime_DTOs.Inventory;
+using AxiomPrime_Metadata.General;
 using Utilities.DataStructures;
 
 public static class InventoryMapper
@@ -30,9 +31,9 @@ public static class InventoryMapper
         };
     }
 
-    public static ItemStatsDataDto ToDto(ItemStatsData statsData)
+    public static StatsDataDto ToDto(ItemStatsData statsData)
     {
-        var dto = new ItemStatsDataDto();
+        var dto = new StatsDataDto();
 
         if (statsData is null)
             return dto;
@@ -44,11 +45,11 @@ public static class InventoryMapper
         return dto;
     }
 
-    public static ItemStatDto ToDto(ItemStat_Database stat)
+    public static StatDto ToDto(ItemStat_Database stat)
     {
         ArgumentNullException.ThrowIfNull(stat);
 
-        return new ItemStatDto
+        return new StatDto
         {
             Identity = stat.Identity,
             GeneralData = stat.GeneralData
