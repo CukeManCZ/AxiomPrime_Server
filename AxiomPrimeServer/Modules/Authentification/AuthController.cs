@@ -1,3 +1,5 @@
+using AxiomPrime.Generators.Items;
+using AxiomPrime.Models.Items;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
@@ -55,11 +57,11 @@ public class AuthController : ControllerBase
             ShipGrid shipGrid = ShipGrid.FromCustomGrid(ship);
             await m_shipInventoryAPI.CreateShip(player.Id, shipGrid);
             //Add default items
-            ItemGenerator itemGenerator = new ItemGenerator();
-            itemGenerator.Initialize(new());
+            
+            ItemGenerator itemGenerator = new ItemGenerator(new AxiomPrime.Models.Stats.StatService());
 
             for(int i = 0; i < 5; i++){
-                await m_inventoryAPI.AddItem(player.Id, itemGenerator.GenerateItem(1));
+                await m_inventoryAPI.AddItem(player.Id, Item_Database.ToDatabaseItem(itemGenerator.GenerateItem(1)));
             }
         }
 

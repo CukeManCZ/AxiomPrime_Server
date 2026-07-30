@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using Utilities.AuthorizationTools;
+using AxiomPrime.Generators.Items;
+using AxiomPrime.Models.Items;
 
 [ApiController]
 [Route("api/game")]
@@ -22,11 +24,12 @@ public class GameController : ControllerBase
         if (!User.TryGetProfileId(out var profileId))
             return Unauthorized();
 
-        ItemGenerator itemGenerator = new ItemGenerator();
-        itemGenerator.Initialize(new());
+        ItemGenerator itemGenerator = new ItemGenerator(new AxiomPrime.Models.Stats.StatService());
 
-        Item_Database item = itemGenerator.GenerateItem(1);
-        if(await m_inventoryAPI.AddItem(profileId, item))
+        Item item = itemGenerator.GenerateItem(1);
+        Item_Database item_Database = Item_Database.ToDatabaseItem(item);
+
+        if(await m_inventoryAPI.AddItem(profileId, item_Database))
             return Ok(m_inventoryAPI.GetAsync(profileId).Result.Items);
         return NotFound();
     }

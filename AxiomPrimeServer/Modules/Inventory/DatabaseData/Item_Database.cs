@@ -1,9 +1,67 @@
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json;
+using AxiomPrime.Models.Items;
+using AxiomPrime_Metadata.General;
 using AxiomPrime_Metadata.Inventory;
 
 public class Item_Database
 {
+    public static Item_Database ToDatabaseItem(Item item)
+    {
+        ArgumentNullException.ThrowIfNull(item);
+
+        var databaseItem = new Item_Database
+        {
+            Identity = item.Identity,
+            State = item.State,
+            GeneralData = item.GeneralData,
+            ItemName = item.Identity?.Name ?? "Testing",
+            Power = item.Power
+        };
+
+        if (item.Stats is { Count: > 0 })
+        {
+            var databaseStats = item.Stats
+                .Where(stat => stat?.Identity is not null && stat.GeneralData is not null)
+                .Select(stat => new ItemStat_Database
+                {
+                    Identity = stat.Identity,
+                    GeneralData = stat.GeneralData,
+                    Weight = stat.Weight
+                })
+                .ToList();
+
+            databaseItem.StatsData.SetStats(databaseStats);
+        }
+
+        var sizeValue = 1;
+        //TODO: work this in generator
+        databaseItem.Size = CreateItemGridData(sizeValue);
+
+        return databaseItem;
+    }
+
+    private static ItemGridData CreateItemGridData(float sizeValue)
+    {
+        var effectiveSize = Math.Max(1, (int)Math.Ceiling(sizeValue));
+        var width = Math.Max(1, (int)Math.Ceiling(Math.Sqrt(effectiveSize)));
+        var height = Math.Max(1, (int)Math.Ceiling(effectiveSize / (double)width));
+
+        var grid = new ItemGridData
+        {
+            Width = width,
+            Height = height
+        };
+
+        grid.Values = new List<bool>(width * height);
+        for (var i = 0; i < width * height; i++)
+        {
+            grid.Values.Add(i < effectiveSize);
+        }
+
+        return grid;
+    }
+
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true

@@ -110,6 +110,16 @@ app.MapGet("/", (IEnumerable<EndpointDataSource> sources) =>
     return Results.Text(string.Join("\n", endpoints));
 });
 
+#if DEBUG
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<GameDbContext>();
+
+    db.Database.EnsureDeleted(); // Deletes the database
+    db.Database.Migrate();       // Recreates it from migrations
+}
+#endif
+
 app.UseHttpsRedirection();
 app.UseRouting();
 
@@ -117,5 +127,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
 
 app.Run();
