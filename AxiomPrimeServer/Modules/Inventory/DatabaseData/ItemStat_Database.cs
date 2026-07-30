@@ -22,7 +22,7 @@ public class ItemStat_Database
 
     public string StatType
     {
-        get => Identity?.Id.ToString() ?? string.Empty;
+        get => Identity?.Type.ToString() ?? string.Empty;
         set { }
     }
 
