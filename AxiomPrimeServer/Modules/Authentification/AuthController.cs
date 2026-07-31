@@ -56,6 +56,8 @@ public class AuthController : ControllerBase
             CustomGrid<string> ship = new CustomGrid<string>(3,3, "Empty");
             ShipGrid shipGrid = ShipGrid.FromCustomGrid(ship);
             await m_shipInventoryAPI.CreateShip(player.Id, shipGrid);
+            await m_shipInventoryAPI.CreateShip(player.Id, shipGrid);
+            await m_shipInventoryAPI.CreateShip(player.Id, shipGrid);
             //Add default items
             
             ItemGenerator itemGenerator = new ItemGenerator(new AxiomPrime.Models.Stats.StatService());

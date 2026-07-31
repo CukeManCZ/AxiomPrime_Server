@@ -3,183 +3,173 @@ stats:
   - id: energy_cost
     name: "Energy cost"
     isPercentage: false
-    baseValue: 1.0
+    weight: 1.0
     tags: ["Global"]
     type: Global
-    minValue: 0.0
-    maxValue: 0.0
-    description: ""
-
-  - id: weight
-    name: "weight"
-    isPercentage: false
-    baseValue: 1.0
-    tags: ["Global"]
-    type: Global
-    minValue: 0.0
-    maxValue: 0.0
+    maxTotalValue: 0.0
+    maxItemValue: 0.0
     description: ""
 
   - id: energy_grid
     name: "Energy grid"
     isPercentage: false
-    baseValue: 1.0
+    weight: 1.0
     tags: ["Global"]
     type: Global
-    minValue: 0.0
-    maxValue: 0.0
+    maxTotalValue: 0.0
+    maxItemValue: 0.0
     description: ""
 
   - id: size
     name: "Size"
     isPercentage: false
-    baseValue: 1.0
+    weight: 1.0
     tags: ["Global"]
     type: Global
-    minValue: 0.0
-    maxValue: 0.0
+    maxTotalValue: 0.0
+    maxItemValue: 0.0
     description: ""
 
   # Weapon Stats
   - id: damage
     name: "Damage"
     isPercentage: false
-    baseValue: 1.0
+    weight: 1.0
     tags: ["Weapon"]
     type: Offensive
-    minValue: 0.0
-    maxValue: 0.0
+    maxTotalValue: 0.0
+    maxItemValue: 0.0
     description: "The base amount of damage dealt by the ship's weapons in each attack."
 
   - id: damage_bonus
     name: "Damage bonus"
     isPercentage: true
-    baseValue: 5.0
+    weight: 5.0
     tags: ["Weapon", "Miscellaneous:Amplifier"]
     type: Offensive
-    minValue: 0.0
-    maxValue: 0.0
+    maxTotalValue: 0.0
+    maxItemValue: 0.0
     description: "A percentage increase applied to the total damage output, amplifying overall offensive power."
 
   - id: critical_chance
     name: "Critical chance"
     isPercentage: true
-    baseValue: 5.0
+    weight: 5.0
     tags: ["Weapon"]
     type: Offensive
-    minValue: 100.0
-    maxValue: 5.0
+    maxTotalValue: 100.0
+    maxItemValue: 5.0
     description: "The probability of landing a critical hit, which typically deals 2x bonus damage."
 
   - id: armor_penetration
     name: "Armor penetration"
     isPercentage: true
-    baseValue: 3.0
+    weight: 3.0
     tags: ["Weapon:Kinetic", "Weapon:Hybrid"]
     type: Offensive
-    minValue: 100.0
-    maxValue: 5.0
+    maxTotalValue: 100.0
+    maxItemValue: 5.0
     description: "Reduces the effectiveness of enemy armor, allowing more damage to bypass armor layers."
 
   - id: shield_penetration
     name: "Shield penetration"
     isPercentage: true
-    baseValue: 3.0
+    weight: 3.0
     tags: ["Weapon:Energy", "Weapon:Hybrid"]
     type: Offensive
-    minValue: 100.0
-    maxValue: 5.0
+    maxTotalValue: 100.0
+    maxItemValue: 5.0
     description: "Reduces the effectiveness of enemy shields, allowing more damage to bypass shield layers."
 
   # Defense Stats
   - id: hit_points
     name: "Hit points"
     isPercentage: false
-    baseValue: 0.5
+    weight: 0.5
     tags: ["Defense"]
     type: Defensive
-    minValue: 0.0
-    maxValue: 0.0
+    maxTotalValue: 0.0
+    maxItemValue: 0.0
     description: "The total health pool of the ship; when depleted, the ship is destroyed."
 
   - id: damage_reduction
     name: "Damage reduction"
     isPercentage: true
-    baseValue: 5.0
+    weight: 5.0
     tags: ["Defense", "Miscellaneous"]
     type: Defensive
-    minValue: 75.0
-    maxValue: 5.0
+    maxTotalValue: 75.0
+    maxItemValue: 5.0
     description: "A percentage reduction applied to all incoming damage, enhancing overall survivability."
 
   - id: armor
     name: "Armor"
     isPercentage: false
-    baseValue: 1.0
+    weight: 1.0
     tags: ["Defense:Armor"]
     type: Defensive
-    minValue: 0.0
-    maxValue: 0.0
+    maxTotalValue: 0.0
+    maxItemValue: 0.0
     description: "Provides resistance to physical damage, reducing the amount of damage that reaches hit points."
 
   - id: shield
     name: "Shield"
     isPercentage: false
-    baseValue: 1.0
+    weight: 1.0
     tags: ["Defense:Shield"]
     type: Defensive
-    minValue: 0.0
-    maxValue: 0.0
+    maxTotalValue: 0.0
+    maxItemValue: 0.0
     description: "An energy barrier that absorbs incoming damage before it affects hit points."
 
   - id: reflect_chance
     name: "Reflect chance"
     isPercentage: true
-    baseValue: 5.0
+    weight: 5.0
     tags: ["Defense"]
     type: Defensive
-    minValue: 50.0
-    maxValue: 5.0
+    maxTotalValue: 50.0
+    maxItemValue: 5.0
     description: "The probability of reflecting incoming damage back to the attacker."
 
   # Propulsion Stats
   - id: speed
     name: "Speed"
     isPercentage: false
-    baseValue: 2.0
+    weight: 2.0
     tags: ["Propulsion"]
     type: Propulsion
-    minValue: 0.0
-    maxValue: 0.0
+    maxTotalValue: 0.0
+    maxItemValue: 0.0
     description: "Determines how quickly the ship can move through space, affecting initiative in fight and travel time."
 
   - id: dodge_chance
     name: "Dodge chance"
     isPercentage: true
-    baseValue: 5.0
+    weight: 5.0
     tags: ["Propulsion"]
     type: Propulsion
-    minValue: 50.0
-    maxValue: 5.0
+    maxTotalValue: 50.0
+    maxItemValue: 5.0
     description: "The probability of evading incoming attacks, allowing the ship to avoid damage entirely."
 
   # Miscellaneous Stats
   - id: energy_generation
     name: "Energy generation"
     isPercentage: false
-    baseValue: 5.0
+    weight: 5.0
     tags: ["Miscellaneous:Generator"]
     type: Miscellaneous
-    minValue: 0.0
-    maxValue: 0.0
+    maxTotalValue: 0.0
+    maxItemValue: 0.0
     description: "The rate at which the ship produces energy, used for missions."
 
   - id: energy_mitigation
     name: "Energy mitigation"
     isPercentage: false
-    baseValue: 5.0
+    weight: 5.0
     tags: ["Miscellaneous"]
     type: Miscellaneous
-    minValue: 0.0
-    maxValue: 0.0
+    maxTotalValue: 0.0
+    maxItemValue: 0.0
     description: "Reduces the impact of energy cost of modules fitted into the ship."

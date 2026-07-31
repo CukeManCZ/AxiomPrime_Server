@@ -23,7 +23,7 @@ public class ShipInventoryRepository
         inventory = new ShipInventory
         {
             PlayerId = playerId,
-            NumOfShips = 1
+            NumOfShips = 100
         };
 
         m_db.ShipInventories.Add(inventory);
