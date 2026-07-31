@@ -23,7 +23,14 @@ public class ItemStat_Database
     public string StatType
     {
         get => Identity?.Type.ToString() ?? string.Empty;
-        set { }
+        set
+        {
+            Identity ??= new StatIdentity();
+            if (Enum.TryParse<StatType>(value, true, out var statType))
+            {
+                Identity.Type = statType;
+            }
+        }
     }
 
     public float Value
