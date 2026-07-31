@@ -26,8 +26,7 @@ public class Item_Database
                 .Select(stat => new ItemStat_Database
                 {
                     Identity = stat.Identity,
-                    GeneralData = stat.GeneralData,
-                    Weight = stat.Weight
+                    GeneralData = stat.GeneralData
                 })
                 .ToList();
 

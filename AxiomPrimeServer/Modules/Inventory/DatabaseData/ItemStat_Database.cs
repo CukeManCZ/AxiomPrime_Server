@@ -7,6 +7,7 @@ public class ItemStat_Database
 
     public float Weight { get; set; }
 
+    [System.Text.Json.Serialization.JsonIgnore]
     public string Name
     {
         get => Identity?.Id.ToString() ?? string.Empty;
@@ -20,6 +21,7 @@ public class ItemStat_Database
         }
     }
 
+    [System.Text.Json.Serialization.JsonIgnore]
     public string StatType
     {
         get => Identity?.Type.ToString() ?? string.Empty;
@@ -33,6 +35,7 @@ public class ItemStat_Database
         }
     }
 
+    [System.Text.Json.Serialization.JsonIgnore]
     public float Value
     {
         get => GeneralData?.Value ?? 0f;
@@ -43,6 +46,7 @@ public class ItemStat_Database
         }
     }
 
+    [System.Text.Json.Serialization.JsonIgnore]
     public bool IsPercentage
     {
         get => Identity?.IsPercentage ?? false;

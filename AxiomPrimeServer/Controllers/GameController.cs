@@ -29,7 +29,7 @@ public class GameController : ControllerBase
         Item item = itemGenerator.GenerateItem(1);
         Item_Database item_Database = Item_Database.ToDatabaseItem(item);
 
-        if(await m_inventoryAPI.AddItem(profileId, item_Database))
+        if (await m_inventoryAPI.AddItem(profileId, item_Database))
             return Ok(m_inventoryAPI.GetAsync(profileId).Result.Items);
         return NotFound();
     }
@@ -42,7 +42,7 @@ public class GameController : ControllerBase
             return Unauthorized();
 
         Guid guid = Guid.Parse("d87b8702-31c9-43a2-b94b-5fb44ffc3e6a");
-        if(await m_inventoryAPI.RemoveItem(profileId, guid))
+        if (await m_inventoryAPI.RemoveItem(profileId, guid))
             return Ok();
         return NotFound();
     }
@@ -56,11 +56,11 @@ public class GameController : ControllerBase
         Item_Database? item = inventory.Items.First();
         ShipInventory shipInventory = await m_shipInventoryAPI.GetAsync(profileId);
         Ship_Database? ship = shipInventory.Ships.First();
-        if(item != null && ship != null)
+        if (item != null && ship != null)
         {
-            if(!item.State.Equiped)
+            if (!item.State.Equiped)
             {
-                if(await m_shipInventoryAPI.PlaceItem(ship.Identity.Id, item, 0, 0))
+                if (await m_shipInventoryAPI.PlaceItem(ship.Identity.Id, item, 0, 0))
                 {
                     await m_inventoryAPI.EquipItem(profileId, item.Identity.Id);
                     return Ok();
@@ -79,11 +79,11 @@ public class GameController : ControllerBase
         Item_Database? item = inventory.Items.First();
         ShipInventory shipInventory = await m_shipInventoryAPI.GetAsync(profileId);
         Ship_Database? ship = shipInventory.Ships.First();
-        if(item != null && ship != null)
+        if (item != null && ship != null)
         {
             if (item.State.Equiped)
             {
-                if(await m_shipInventoryAPI.RemoveItem(ship.Identity.Id, item.Identity.Id))
+                if (await m_shipInventoryAPI.RemoveItem(ship.Identity.Id, item.Identity.Id))
                 {
                     await m_inventoryAPI.UnEquipItem(profileId, item.Identity.Id);
                     return Ok();
