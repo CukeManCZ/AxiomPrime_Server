@@ -21,4 +21,12 @@
     <ProjectReference Include="..\..\AxiomPrime_Core\AxiomPrime.csproj" />
   </ItemGroup>
 
+  <!-- Copy Configs from Core project to server output -->
+  <ItemGroup>
+    <None Update="..\..\AxiomPrime_Core\Configs\**">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>Configs\%(RecursiveDir)%(Filename)%(Extension)</Link>
+    </None>
+  </ItemGroup>
+
 </Project>
