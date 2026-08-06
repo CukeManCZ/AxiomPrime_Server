@@ -67,17 +67,20 @@ builder.Services.AddScoped<EnergyRepository>();
 builder.Services.AddScoped<PlayerRepository>();
 builder.Services.AddScoped<InventoryRepository>();
 builder.Services.AddScoped<ShipInventoryRepository>();
+builder.Services.AddScoped<MissionRepository>();
 
 // Services (Business logic)
 builder.Services.AddScoped<GlobalPlayerDataService>();
 builder.Services.AddScoped<BrainCloudService>();
 builder.Services.AddScoped<IInventoryService, InventoryService>();
 builder.Services.AddScoped<IShipInventoryService, ShipInventoryService>();
+builder.Services.AddScoped<IMissionService, MissionService>();
 
 // API Layers
 builder.Services.AddScoped<GlobalPlayerDataAPI>();
 builder.Services.AddScoped<InventoryAPI>();
 builder.Services.AddScoped<ShipInventoryAPI>();
+builder.Services.AddScoped<MissionAPI>();
 
 // HTTP Clients
 builder.Services.AddHttpClient<BrainCloudClient>();

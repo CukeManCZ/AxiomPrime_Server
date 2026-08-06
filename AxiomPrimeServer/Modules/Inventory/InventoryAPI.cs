@@ -3,15 +3,15 @@ using System.Threading.Tasks;
 
 public class InventoryAPI
 {
-    private readonly IInventoryService _inventoryService;
-    private readonly EventBus _eventBus;
+    private readonly IInventoryService m_inventoryService;
+    private readonly EventBus m_eventBus;
 
     public InventoryAPI(
         IInventoryService inventoryService,
         EventBus eventBus)
     {
-        _inventoryService = inventoryService;
-        _eventBus = eventBus;
+        m_inventoryService = inventoryService;
+        m_eventBus = eventBus;
     }
 
     // =========================================================
@@ -19,7 +19,7 @@ public class InventoryAPI
     // =========================================================
 
     public Task<Inventory> GetAsync(string playerId)
-        => _inventoryService.GetAsync(playerId);
+        => m_inventoryService.GetAsync(playerId);
 
     #endregion
 
@@ -28,10 +28,10 @@ public class InventoryAPI
     // =========================================================
 
     public Task<bool> AddItem(string playerId, Item_Database item)
-        => _inventoryService.AddItem(playerId, item);
+        => m_inventoryService.AddItem(playerId, item);
 
     public Task<bool> RemoveItem(string playerId, Guid itemId)
-        => _inventoryService.RemoveItem(playerId, itemId);
+        => m_inventoryService.RemoveItem(playerId, itemId);
 
     #endregion
 
@@ -41,12 +41,12 @@ public class InventoryAPI
 
     public async Task<bool> EquipItem(string playerId, Guid itemId)
     {
-        var result = await _inventoryService.EquipItem(playerId, itemId);
+        var result = await m_inventoryService.EquipItem(playerId, itemId);
 
         if (!result)
             return false;
 
-        var inventory = await _inventoryService.GetAsync(playerId);
+        var inventory = await m_inventoryService.GetAsync(playerId);
 
         var item = inventory.Items.Find(x => x.Id == itemId);
 
@@ -65,7 +65,7 @@ public class InventoryAPI
 
     public async Task<bool> UnEquipItem(string playerId, Guid itemId)
     {
-        var result = await _inventoryService.UnEquipItem(playerId, itemId);
+        var result = await m_inventoryService.UnEquipItem(playerId, itemId);
 
         if (!result)
             return false;
@@ -80,7 +80,7 @@ public class InventoryAPI
     // =========================================================
 
     public Task<bool> HasSpace(string playerId)
-        => _inventoryService.HasSpace(playerId);
+        => m_inventoryService.HasSpace(playerId);
 
     #endregion
 }

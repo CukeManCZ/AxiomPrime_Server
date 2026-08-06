@@ -18,7 +18,6 @@ public class InventoryController : ControllerBase
 
     #region Data gathering
 
-    [AllowAnonymous]
     [HttpGet]
     public async Task<IActionResult> GetInventory()
     {

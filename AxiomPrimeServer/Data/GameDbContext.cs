@@ -18,6 +18,8 @@ public class GameDbContext : DbContext
     public DbSet<ShipInventory> ShipInventories {get; set;}
     public DbSet<Ship_Database> Ships {get; set;}
 
+    public DbSet<Mission_Database> Missions {get; set;}
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Currencies>()
@@ -41,6 +43,23 @@ public class GameDbContext : DbContext
                 .WithOne()
                 .HasForeignKey("InventoryPlayerId")
                 .HasPrincipalKey(x => x.PlayerId);
+        });
+
+        modelBuilder.Entity<Mission_Database>(mission =>
+        {
+            mission.HasKey(x => x.Id);
+
+            mission.Property(x => x.Id)
+                .ValueGeneratedNever();
+
+            mission.Property(x => x.MissionDataJson)
+                .HasColumnName("MissionData")
+                .HasColumnType("jsonb")
+                .IsRequired();
+
+            mission.HasIndex(x => x.PlayerId);
+
+            mission.ToTable("Missions");
         });
 
         modelBuilder.Entity<Item_Database>(item =>
