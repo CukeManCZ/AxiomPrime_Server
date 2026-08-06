@@ -67,6 +67,22 @@ public class ShipInventoryService : IShipInventoryService
         await m_repo.SaveAsync();
     }
 
+    public async Task<bool> SelectActiveShipAsync(string playerId, Guid shipId)
+    {
+        var inventory = await m_repo.GetAsync(playerId);
+
+        if (shipId == Guid.Empty)
+            return false;
+
+        var ship = inventory.Ships.FirstOrDefault(x => x.Id == shipId);
+        if (ship == null)
+            return false;
+
+        inventory.ActiveShip = shipId;
+        await m_repo.SaveAsync();
+        return true;
+    }
+
     // =========================================
     // CONSTANTS (STRING STATES ONLY HERE)
     // =========================================

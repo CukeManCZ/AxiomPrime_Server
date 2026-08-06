@@ -22,6 +22,12 @@ public interface IShipInventoryService
     Task AddShipSlotsAsync(string playerId, int amount);
 
     // =========================================
+    // SHIP SELECTION
+    // =========================================
+
+    Task<bool> SelectActiveShipAsync(string playerId, Guid shipId);
+
+    // =========================================
     // LOCK / UNLOCK SYSTEM
     // =========================================
 

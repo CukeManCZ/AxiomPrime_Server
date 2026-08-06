@@ -55,6 +55,21 @@ public class InventoryController : ControllerBase
         return Ok(ShipMapper.ToDto(ship));
     }
 
+    [Authorize]
+    [HttpPost("ship/{shipId:guid}/select")]
+    public async Task<IActionResult> SelectActiveShip(Guid shipId)
+    {
+        if (!User.TryGetProfileId(out var profileId))
+            return Unauthorized();
+
+        var ship = await m_shipInventoryAPI.GetShipAsync(shipId);
+        if (ship.ShipInventoryId != profileId)
+            return Forbid();
+
+        var result = await m_shipInventoryAPI.SelectActiveShip(profileId, shipId);
+        return result ? Ok() : BadRequest("Ship not selected");
+    }
+
     #endregion
 
     #region Item Manipulation

@@ -33,6 +33,9 @@ public class ShipInventoryAPI
     #region SHIP STATE
     // =========================================================
 
+    public Task<bool> SelectActiveShip(string playerId, Guid shipId)
+        => _shipService.SelectActiveShipAsync(playerId, shipId);
+
     public Task UnlockShipSlots(Guid shipId)
         => _shipService.UnlockShipSlotsAsync(shipId);
 

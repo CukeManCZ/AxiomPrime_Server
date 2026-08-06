@@ -43,7 +43,8 @@ public static class ShipMapper
             NumOfShips = inventory.NumOfShips,
             Ships = inventory.Ships
                 .Select(ToDto)
-                .ToList()
+                .ToList(),
+            ActiveShip = inventory.ActiveShip
         };
     }
 
