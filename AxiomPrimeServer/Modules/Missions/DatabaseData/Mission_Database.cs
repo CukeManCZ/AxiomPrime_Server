@@ -1,7 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json;
-using AxiomPrime.Models.Items;
 using AxiomPrime.Models.Missions;
 using AxiomPrime_Metadata.Missions;
 using AxiomPrime_Metadata.Rewards;
@@ -29,6 +28,24 @@ public class Mission_Database
         };
 
         return databaseMission;
+    }
+
+    public static Mission FromDatabaseMission(Mission_Database mission)
+    {
+        ArgumentNullException.ThrowIfNull(mission);
+
+        var classicMission = new Mission{
+            Identity = mission.Identity,
+            GeneralData = mission.GeneralData,
+            State = mission.State,
+            Reward = new MissionReward
+            {
+                GeneralData = mission.Reward.GeneralData,
+                Item = mission.Reward.Item != null ? Item_Database.FromDatabaseItem(mission.Reward.Item) : null
+            }
+        };
+
+        return classicMission;
     }
 
     private static readonly JsonSerializerOptions JsonOptions = new()

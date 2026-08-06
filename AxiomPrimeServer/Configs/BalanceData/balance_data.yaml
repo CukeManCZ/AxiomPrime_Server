@@ -1,0 +1,36 @@
+# Balance Data Configuration
+# Game balance parameters for Axiom Prime Core
+
+---
+# Server configuration
+server:
+  game_speed: 1
+
+# Ship slot configuration
+slots:
+  base_slots: 4
+  offensive_slot: 0.25
+  defensive_slot: 0.25
+  propulsion_slot: 0.25
+  miscellaneous_slot: 0.25
+  optimal_items_in_ship_per_type: 4
+
+# Mission system configuration
+missions:
+  distance_multiplier: 10
+  ship_travelling_speed_km_h: 40000
+  base_number_of_missions_per_level: 5
+  increment_every_x_levels: 2
+
+# Energy system configuration
+energy:
+  energy_cost_multiplier_x_distance: 0.5
+  base_energy: 100
+  base_energy_generation_multiplier: 10
+  max_energy_multiplier: 80
+  winrate: 0.7
+
+# Item drop configuration
+items:
+  drop_chance: 0.7
+  max_item_size: 9

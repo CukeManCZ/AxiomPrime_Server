@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using Utilities.AuthorizationTools;
 using AxiomPrime_DTOs.Inventory;
+using AxiomPrime.Services;
 
 [ApiController]
 [Route("inventory")]
@@ -9,11 +10,16 @@ public class InventoryController : ControllerBase
 {
     private readonly InventoryAPI m_inventoryAPI;
     private readonly ShipInventoryAPI m_shipInventoryAPI;
+    private readonly IMissionRegenerationService m_missionRegenerationService;
 
-    public InventoryController(InventoryAPI inventoryAPI, ShipInventoryAPI shipInventoryAPI)
+    public InventoryController(
+        InventoryAPI inventoryAPI,
+        ShipInventoryAPI shipInventoryAPI,
+        IMissionRegenerationService missionRegenerationService)
     {
         m_inventoryAPI = inventoryAPI;
         m_shipInventoryAPI = shipInventoryAPI;
+        m_missionRegenerationService = missionRegenerationService;
     }
 
     #region Data gathering
@@ -67,7 +73,12 @@ public class InventoryController : ControllerBase
             return Forbid();
 
         var result = await m_shipInventoryAPI.SelectActiveShip(profileId, shipId);
-        return result ? Ok() : BadRequest("Ship not selected");
+        if (result)
+        {
+            await m_missionRegenerationService.RegenerateMissionsAsync(profileId, StatSummer.GetShipStats(new ShipStatProvider(ship)));
+            return Ok();
+        }
+        return BadRequest("Ship not selected");
     }
 
     #endregion
@@ -84,7 +95,6 @@ public class InventoryController : ControllerBase
         var result = await m_inventoryAPI.RemoveItem(profileId, itemId);
         if (!result)
             return BadRequest("Item not removed");
-
         return Ok();
     }
 
@@ -125,6 +135,7 @@ public class InventoryController : ControllerBase
                     await m_shipInventoryAPI.PlaceItem(shipId, item, previousItem.X, previousItem.Y);
                     await m_inventoryAPI.EquipItem(profileId, itemId);
                 }
+                await m_missionRegenerationService.RegenerateMissionsAsync(profileId, StatSummer.GetShipStats(new ShipStatProvider(ship)));
                 return Ok();
             }
         }
@@ -135,8 +146,11 @@ public class InventoryController : ControllerBase
         {
             //Place item normally
             if(await m_shipInventoryAPI.PlaceItem(shipId, item, x, y))
-                if(await m_inventoryAPI.EquipItem(profileId, itemId))
+                if(await m_inventoryAPI.EquipItem(profileId, itemId)){
+                    await m_missionRegenerationService.RegenerateMissionsAsync(profileId, StatSummer.GetShipStats(new ShipStatProvider(ship)));
                     return Ok();
+                }
+                    
         }
         else
         {
@@ -149,6 +163,7 @@ public class InventoryController : ControllerBase
                 //Place new in ship
                 await m_shipInventoryAPI.PlaceItem(shipId, item, x, y);
                 await m_inventoryAPI.EquipItem(profileId, item.Id);
+                await m_missionRegenerationService.RegenerateMissionsAsync(profileId, StatSummer.GetShipStats(new ShipStatProvider(ship)));
                 return Ok();
             }
         }
@@ -175,7 +190,11 @@ public class InventoryController : ControllerBase
         {
             if(await m_shipInventoryAPI.PlaceItem(shipId, item))
                 if(await m_inventoryAPI.EquipItem(profileId, itemId))
+                {
+                    await m_missionRegenerationService.RegenerateMissionsAsync(profileId, StatSummer.GetShipStats(new ShipStatProvider(ship)));
                     return Ok();
+                }
+                    
         }
 
         return BadRequest("Item not equipped");
@@ -210,7 +229,8 @@ public class InventoryController : ControllerBase
             return BadRequest("Item does not exist in ship");
         
         var result = await m_shipInventoryAPI.RemoveItem(ship.Identity.Id, item.Id) && await m_inventoryAPI.UnEquipItem(profileId, itemId);
-        
+        if(result)
+            await m_missionRegenerationService.RegenerateMissionsAsync(profileId, StatSummer.GetShipStats(new ShipStatProvider(ship)));
         return result ? Ok() : BadRequest("Item not dequipped");
     }
 
@@ -234,6 +254,7 @@ public class InventoryController : ControllerBase
             await m_inventoryAPI.AddItem(profileId, shipItem.Item);
         }
 
+        await m_missionRegenerationService.RegenerateMissionsAsync(profileId, StatSummer.GetShipStats(new ShipStatProvider(ship)));
         return Ok();
     }
 

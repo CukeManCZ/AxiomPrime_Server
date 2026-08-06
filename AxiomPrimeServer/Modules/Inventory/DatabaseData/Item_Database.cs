@@ -40,6 +40,34 @@ public class Item_Database
         return databaseItem;
     }
 
+    public static Item FromDatabaseItem(Item_Database databaseItem)
+    {
+        ArgumentNullException.ThrowIfNull(databaseItem);
+
+        var item = new Item
+        {
+            Identity = databaseItem.Identity,
+            State = databaseItem.State,
+            GeneralData = databaseItem.GeneralData,
+            Power = databaseItem.Power
+        };
+
+        if (databaseItem.StatsData is not null)
+        {
+            var stats = databaseItem.StatsData.GetStats()
+                ?.Select(stat => new Stat
+                {
+                    Identity = stat.Identity,
+                    GeneralData = stat.GeneralData
+                })
+                .ToList() ?? new List<Stat>();
+
+            item.Stats = stats;
+        }
+
+        return item;
+    }
+
     private static ItemGridData CreateItemGridData(float sizeValue)
     {
         var effectiveSize = Math.Max(1, (int)Math.Ceiling(sizeValue));

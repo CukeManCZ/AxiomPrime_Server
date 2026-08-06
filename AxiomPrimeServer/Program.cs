@@ -75,6 +75,7 @@ builder.Services.AddScoped<BrainCloudService>();
 builder.Services.AddScoped<IInventoryService, InventoryService>();
 builder.Services.AddScoped<IShipInventoryService, ShipInventoryService>();
 builder.Services.AddScoped<IMissionService, MissionService>();
+builder.Services.AddScoped<IMissionRegenerationService, MissionRegenerationService>();
 
 // API Layers
 builder.Services.AddScoped<GlobalPlayerDataAPI>();

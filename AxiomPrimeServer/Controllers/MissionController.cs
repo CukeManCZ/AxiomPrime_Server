@@ -1,5 +1,8 @@
 using AxiomPrime.Generators.Items;
 using AxiomPrime.Generators.Missions;
+using AxiomPrime.Models.Fight;
+using AxiomPrime.Models.Missions;
+using AxiomPrime.Services;
 using Microsoft.AspNetCore.Mvc;
 using Utilities.AuthorizationTools;
 
@@ -11,16 +14,23 @@ public class MissionController : ControllerBase
     private readonly ShipInventoryAPI m_shipInventoryAPI;
     private readonly MissionAPI m_missionAPI;
     private readonly GlobalPlayerDataAPI m_globalPlayerDataAPI;
+    private readonly IMissionRegenerationService m_missionRegenerationService;
 
     private MissionGenerator m_missionGenerator;
     private ItemGenerator m_itemGenerator;
 
-    public MissionController(MissionAPI missionAPI, InventoryAPI inventoryAPI, ShipInventoryAPI shipInventoryAPI, GlobalPlayerDataAPI globalPlayerDataAPI)
+    public MissionController(
+        MissionAPI missionAPI,
+        InventoryAPI inventoryAPI,
+        ShipInventoryAPI shipInventoryAPI,
+        GlobalPlayerDataAPI globalPlayerDataAPI,
+        IMissionRegenerationService missionRegenerationService)
     {
         m_missionAPI = missionAPI;
         m_inventoryAPI = inventoryAPI;
         m_shipInventoryAPI = shipInventoryAPI;
         m_globalPlayerDataAPI = globalPlayerDataAPI;
+        m_missionRegenerationService = missionRegenerationService;
         m_missionGenerator = new MissionGenerator();
         m_itemGenerator = new ItemGenerator(new AxiomPrime.Models.Stats.StatService());
     }
@@ -31,7 +41,9 @@ public class MissionController : ControllerBase
         if (!User.TryGetProfileId(out var profileId))
             return Unauthorized();
 
-        await RegenerateMissions(profileId);
+        ShipInventory inv = await m_shipInventoryAPI.GetAsync(profileId);
+        Ship_Database ship = await m_shipInventoryAPI.GetShipAsync(inv.ActiveShip);
+        await RegenerateMissions(profileId, StatSummer.GetShipStats( new ShipStatProvider(ship)));
 
         List<Mission_Database> current = await m_missionAPI.GetAsync(profileId);
         return Ok(MissionMapper.ToDto(current));
@@ -138,20 +150,17 @@ public class MissionController : ControllerBase
             await m_shipInventoryAPI.UnlockShipInventory(ship.Identity.Id);
 
             await m_missionAPI.RemoveMission(profileId, missionID);
-            await RegenerateMissions(profileId);
-
+            ShipInventory inv = await m_shipInventoryAPI.GetAsync(profileId);
+            Ship_Database activeShip = await m_shipInventoryAPI.GetShipAsync(inv.ActiveShip);
+            await m_missionRegenerationService.RegenerateMissionsAsync(profileId, StatSummer.GetShipStats(new ShipStatProvider(activeShip)));
 
             return Ok("Mission finished");
         }
         return BadRequest("Mission could not be finished");
     }
 
-    private async Task RegenerateMissions(string profileId)
+    public async Task RegenerateMissions(string profileId, ShipStats stats)
     {
-        List<Mission_Database> current = await m_missionAPI.GetAsync(profileId);
-        for(int i = current.Count; i < 3; ++i)
-            await m_missionAPI.AddMission(profileId,
-                Mission_Database.ToDatabaseMission(profileId, m_missionGenerator.GenerateMission(1))
-        );
+        await m_missionRegenerationService.RegenerateMissionsAsync(profileId, stats);
     }
 }

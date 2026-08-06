@@ -55,7 +55,8 @@ public class AuthController : ControllerBase
             //Add default ships
             CustomGrid<string> ship = new CustomGrid<string>(3,3, "Empty");
             ShipGrid shipGrid = ShipGrid.FromCustomGrid(ship);
-            await m_shipInventoryAPI.CreateShip(player.Id, shipGrid);
+            Ship_Database shipModel = await m_shipInventoryAPI.CreateShip(player.Id, shipGrid);
+            await m_shipInventoryAPI.SelectActiveShip(player.Id, shipModel.Identity.Id);
             await m_shipInventoryAPI.CreateShip(player.Id, shipGrid);
             await m_shipInventoryAPI.CreateShip(player.Id, shipGrid);
             //Add default items
