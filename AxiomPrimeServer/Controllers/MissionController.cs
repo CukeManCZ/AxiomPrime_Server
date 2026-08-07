@@ -16,7 +16,6 @@ public class MissionController : ControllerBase
     private readonly GlobalPlayerDataAPI m_globalPlayerDataAPI;
     private readonly IMissionRegenerationService m_missionRegenerationService;
 
-    private MissionGenerator m_missionGenerator;
     private ItemGenerator m_itemGenerator;
 
     public MissionController(
@@ -31,7 +30,6 @@ public class MissionController : ControllerBase
         m_shipInventoryAPI = shipInventoryAPI;
         m_globalPlayerDataAPI = globalPlayerDataAPI;
         m_missionRegenerationService = missionRegenerationService;
-        m_missionGenerator = new MissionGenerator();
         m_itemGenerator = new ItemGenerator(new AxiomPrime.Models.Stats.StatService());
     }
 
@@ -67,14 +65,13 @@ public class MissionController : ControllerBase
             return BadRequest("Ship can not travel multiple missions");
 
         //Check ship
-        bool flyMission = await m_missionAPI.StartTravelToFight(profileId, missionID, ship.Identity.Id, 10);
+        bool flyMission = await m_missionAPI.StartTravelToFight(profileId, missionID, ship.Identity.Id, mission.GeneralData.Time);
         if (flyMission)
         {
-            await m_shipInventoryAPI.LockShipInventory(ship.Identity.Id);
+            await m_shipInventoryAPI.SendToMission(ship.Identity.Id, missionID);
             return Ok("Mission started");
         }
             
-
         return BadRequest("Mission could not be started");
     }
 
@@ -107,7 +104,7 @@ public class MissionController : ControllerBase
         if(mission == null)
             return BadRequest("Mission not found");
 
-        bool startedToFlyBack = await m_missionAPI.StartTravelBack(profileId, missionID, 10);
+        bool startedToFlyBack = await m_missionAPI.StartTravelBack(profileId, missionID, mission.GeneralData.Time);
         if(startedToFlyBack)
             return Ok("Travel from mission started");
 
@@ -147,7 +144,7 @@ public class MissionController : ControllerBase
             //Ship unlock
             var ship = await m_shipInventoryAPI.GetShipAsync(mission.State.ShipID);
             ArgumentNullException.ThrowIfNull(ship);
-            await m_shipInventoryAPI.UnlockShipInventory(ship.Identity.Id);
+            await m_shipInventoryAPI.ReturnFromMission(ship.Identity.Id);
 
             await m_missionAPI.RemoveMission(profileId, missionID);
             ShipInventory inv = await m_shipInventoryAPI.GetAsync(profileId);

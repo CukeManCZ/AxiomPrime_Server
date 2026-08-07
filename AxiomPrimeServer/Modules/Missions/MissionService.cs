@@ -16,6 +16,9 @@ public class MissionService : IMissionService
     public Task<List<Mission_Database>> GetAsync(string playerId)
         => m_playerLockProvider.WithLock(playerId, async () =>
         {
+            var missions = await m_missionRepository.GetAsync(playerId);
+            foreach(var mission in missions)
+                await UpdateMissionTravelTime(mission);
             return await m_missionRepository.GetAsync(playerId);
         });
 
@@ -135,6 +138,9 @@ public class MissionService : IMissionService
             var current = existing.FirstOrDefault(x => x.Identity.Id == missionID);
             if (current == null)
                 return false;
+
+            if(current.State.CurrentState == MissionState.State.Finished)
+                return true;
 
             await UpdateMissionTravelTime(current);
             if(current.State.TimeLeft == 0 && current.State.CurrentState == MissionState.State.FlyingBack)

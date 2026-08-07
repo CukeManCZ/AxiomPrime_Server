@@ -1,6 +1,3 @@
-using System;
-using System.Threading.Tasks;
-
 public interface IShipInventoryService
 {
     // =========================================
@@ -35,6 +32,8 @@ public interface IShipInventoryService
     Task LockShipSlotsAsync(Guid shipId);
     Task UnlockShipInventoryAsync(Guid shipId);
     Task LockShipInventoryAsync(Guid shipId);
+    Task SendToMissionAsync(Guid shipId, Guid missionId);
+    Task ReturnFromMissionAsync(Guid shipId);
 
     /// <summary>
     /// Unlock a single slot (player interaction)

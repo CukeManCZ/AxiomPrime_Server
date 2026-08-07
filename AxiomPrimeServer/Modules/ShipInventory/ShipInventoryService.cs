@@ -192,6 +192,34 @@ public class ShipInventoryService : IShipInventoryService
     }
     #endregion
 
+    #region Missions
+    /// <summary>
+    /// Sends ship on mission and locks inventory
+    /// </summary>
+    /// <param name="shipId"></param>
+    /// <param name="missionId"></param>
+    /// <returns></returns>
+    public async Task SendToMissionAsync(Guid shipId, Guid missionId)
+    {
+        var ship = await GetShipAsync(shipId);
+        ship.State.MissionID = missionId;
+        ship.State.Traveling = true;
+        await LockShipInventoryAsync(shipId);
+    }
+
+    /// <summary>
+    /// Returns ship from mission and unlocks inventory
+    /// </summary>
+    /// <param name="shipId"></param>
+    /// <returns></returns>
+    public async Task ReturnFromMissionAsync(Guid shipId)
+    {
+        var ship = await GetShipAsync(shipId);
+        ship.State.Traveling = false;
+        await UnlockShipInventoryAsync(shipId);
+
+    }
+    #endregion
     #region Item managing
     /// <summary>
     /// PLACE ITEM
@@ -296,12 +324,6 @@ public class ShipInventoryService : IShipInventoryService
 
         await m_repo.SaveAsync();
         return true;
-    }
-
-    private async Task SumShipStats(Guid shipId)
-    {
-        Ship_Database ship = await GetShipAsync(shipId);
-        //TODO stats
     }
 
     /// <summary>

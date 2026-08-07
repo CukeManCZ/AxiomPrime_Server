@@ -50,6 +50,12 @@ public class ShipInventoryAPI
     
     public Task LockShipInventory(Guid shipId)
         => _shipService.LockShipInventoryAsync(shipId);
+
+    public Task SendToMission(Guid shipId, Guid missionId)
+        => _shipService.SendToMissionAsync(shipId, missionId);
+
+    public Task ReturnFromMission(Guid shipId)
+        => _shipService.ReturnFromMissionAsync(shipId);
     #endregion
 
     // =========================================================
