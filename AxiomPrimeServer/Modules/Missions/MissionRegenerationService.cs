@@ -1,5 +1,6 @@
 using AxiomPrime.Generators.Missions;
 using AxiomPrime.Models.Fight;
+using AxiomPrime_Metadata.Missions;
 
 public interface IMissionRegenerationService
 {
@@ -22,6 +23,9 @@ public class MissionRegenerationService : IMissionRegenerationService
 
         foreach (var mission in current)
         {
+            if(mission.State.CurrentState != MissionState.State.NotActive)
+                continue;
+                
             var updatedMission = m_missionGenerator.UpdateMission(
                 Mission_Database.FromDatabaseMission(mission),
                 stats);

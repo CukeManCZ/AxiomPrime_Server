@@ -18,7 +18,7 @@ public class MissionService : IMissionService
         {
             var missions = await m_missionRepository.GetAsync(playerId);
             foreach(var mission in missions)
-                await UpdateMissionTravelTime(mission);
+                await UpdateMissionStatus(mission);
             return await m_missionRepository.GetAsync(playerId);
         });
 
@@ -59,6 +59,13 @@ public class MissionService : IMissionService
             return true;
         });
 
+    /// <summary>
+    /// Updates mission reward
+    /// </summary>
+    /// <param name="playerId"></param>
+    /// <param name="missionID"></param>
+    /// <param name="reward"></param>
+    /// <returns></returns>
     public Task<bool> UpdateMissionReward(string playerId,Guid missionID, MissionReward_Database reward)
         => m_playerLockProvider.WithLock(playerId, async () =>
         {
@@ -72,7 +79,15 @@ public class MissionService : IMissionService
             return true;
         });
 
-    public Task<bool> StartTravelToFight(string playerId, Guid missionID, Guid shipID, int travelTime)
+    /// <summary>
+    /// Starts mission travel based on set time in GeneralData.
+    /// Half of time is flyingTo state -> then flyingBack state
+    /// </summary>
+    /// <param name="playerId"></param>
+    /// <param name="missionID"></param>
+    /// <param name="shipID"></param>
+    /// <returns></returns>
+    public Task<bool> StartTravel(string playerId, Guid missionID, Guid shipID)
         => m_playerLockProvider.WithLock(playerId, async () =>
         {
             var existing = await m_missionRepository.GetAsync(playerId);
@@ -82,36 +97,18 @@ public class MissionService : IMissionService
 
             current.State.ShipID = shipID;
             current.State.CurrentState = MissionState.State.FlyingTo;
-            current.State.TimeLeft = travelTime;
-            await m_missionRepository.UpdateAsync(current);
-            return true;
-        });
-    
-    public Task<bool> StartTravelBack(string playerId, Guid missionID, int travelTime)
-        => m_playerLockProvider.WithLock(playerId, async () =>
-        {
-            var existing = await m_missionRepository.GetAsync(playerId);
-            var current = existing.FirstOrDefault(x => x.Identity.Id == missionID);
-            if (current == null)
-                return false;
-
-            if(current.State.CurrentState != MissionState.State.BattleReady)
-                return false;
-
-            if (current.State.SkippedTravel)
-            {
-                current.State.TimeLeft = 0;
-                current.State.CurrentState = MissionState.State.Finished;
-            }else
-            {
-                current.State.CurrentState = MissionState.State.FlyingBack;
-                current.State.TimeLeft = travelTime;
-            }
-            
+            current.State.TimeLeft = current.GeneralData.Time;
+            current.State.LastUpdate = DateTime.UtcNow;
             await m_missionRepository.UpdateAsync(current);
             return true;
         });
 
+    /// <summary>
+    /// Skips all travel and sets mission into finished state
+    /// </summary>
+    /// <param name="playerId"></param>
+    /// <param name="missionID"></param>
+    /// <returns></returns>
     public Task<bool> SkipTraveling(string playerId, Guid missionID)
         => m_playerLockProvider.WithLock(playerId, async () =>
         {
@@ -120,10 +117,11 @@ public class MissionService : IMissionService
             if (current == null)
                 return false;
 
-            if(current.State.CurrentState != MissionState.State.FlyingTo)
+            if(current.State.CurrentState != MissionState.State.FlyingTo
+            && current.State.CurrentState != MissionState.State.FlyingBack)
             return false;
 
-            current.State.CurrentState = MissionState.State.BattleReady;
+            current.State.CurrentState = MissionState.State.Finished;
             current.State.TimeLeft = 0;
             current.State.SkippedTravel = true;
             
@@ -131,6 +129,38 @@ public class MissionService : IMissionService
             return true;
         });
 
+    /// <summary>
+    /// Player aborst mission only if it is flying to destination
+    /// </summary>
+    /// <param name="playerId"></param>
+    /// <param name="missionID"></param>
+    /// <returns></returns>
+    public Task<bool> AbortMission(string playerId, Guid missionID)
+        => m_playerLockProvider.WithLock(playerId, async () =>
+        {
+            var existing = await m_missionRepository.GetAsync(playerId);
+            var current = existing.FirstOrDefault(x => x.Identity.Id == missionID);
+            if (current == null)
+                return false;
+
+            if(current.State.CurrentState != MissionState.State.FlyingTo)
+                return false;
+
+            current.State.CurrentState = MissionState.State.FlyingBack;
+            current.State.Aborted = true;
+            current.State.TimeLeft = current.GeneralData.Time - current.State.TimeLeft;
+            current.State.SkippedTravel = false;
+            
+            await m_missionRepository.UpdateAsync(current);
+            return true;
+        });
+
+    /// <summary>
+    /// Checks if mission is in finished state and fight was seen
+    /// </summary>
+    /// <param name="playerId"></param>
+    /// <param name="missionID"></param>
+    /// <returns></returns>
     public Task<bool> IsMissionFinished(string playerId, Guid missionID)
         => m_playerLockProvider.WithLock(playerId, async () =>
         {
@@ -139,21 +169,22 @@ public class MissionService : IMissionService
             if (current == null)
                 return false;
 
-            if(current.State.CurrentState == MissionState.State.Finished)
-                return true;
+            await UpdateMissionStatus(current);
 
-            await UpdateMissionTravelTime(current);
-            if(current.State.TimeLeft == 0 && current.State.CurrentState == MissionState.State.FlyingBack)
-            {
-                current.State.CurrentState = MissionState.State.Finished;
-                await m_missionRepository.UpdateAsync(current);
-                return true;
-            }
+            if(current.State.CurrentState == MissionState.State.Finished)
+                if(current.State.SeenFight || current.State.Aborted)
+                    return true;
                 
             return false;
         });
 
-    public Task<bool> IsMissionBattleReady(string playerId, Guid missionID)
+    /// <summary>
+    /// Try to set mission fight as seen if it is behind half of travel -> flyingTo state.
+    /// </summary>
+    /// <param name="playerId"></param>
+    /// <param name="missionID"></param>
+    /// <returns></returns>
+    public Task<bool> SetMissionFightAsSeen(string playerId, Guid missionID)
         => m_playerLockProvider.WithLock(playerId, async () =>
         {
             var existing = await m_missionRepository.GetAsync(playerId);
@@ -161,24 +192,52 @@ public class MissionService : IMissionService
             if (current == null)
                 return false;
 
-            await UpdateMissionTravelTime(current);
-            if(current.State.TimeLeft == 0 && current.State.CurrentState == MissionState.State.FlyingTo)
+            await UpdateMissionStatus(current);
+            
+            if(current.State.CurrentState == MissionState.State.FlyingBack
+                || current.State.CurrentState == MissionState.State.Finished)
             {
-                current.State.CurrentState = MissionState.State.BattleReady;
-                await m_missionRepository.UpdateAsync(current);
-                return true;
+                if (!current.State.SeenFight)
+                {
+                    current.State.SeenFight = true;
+                    await m_missionRepository.UpdateAsync(current);
+                    return true;
+                }
+                    
             }
                 
             return false;
         });
 
-    private async Task UpdateMissionTravelTime(Mission_Database mission)
+    /// <summary>
+    /// Updates mission status from based on current time left.
+    /// Expected behaviour is to start with FlyingTo state
+    /// </summary>
+    /// <param name="mission"></param>
+    /// <returns></returns>
+    private async Task UpdateMissionStatus(Mission_Database mission)
     {
+        if(mission.State.CurrentState == MissionState.State.NotActive)
+            return;
+
         var now = DateTime.UtcNow;
         var seconds = (float)(now - mission.State.LastUpdate).TotalSeconds;
 
         mission.State.TimeLeft = Math.Max(0, mission.State.TimeLeft - seconds);
         mission.State.LastUpdate = now;
+
+        if (mission.State.Aborted)
+        {
+            if(mission.State.TimeLeft <= 0)
+                mission.State.CurrentState = MissionState.State.Finished;
+        }
+        else
+        {
+            if(mission.State.TimeLeft < mission.GeneralData.Time/2.0f && mission.State.TimeLeft > 0)
+                mission.State.CurrentState = MissionState.State.FlyingBack;
+            else if(mission.State.TimeLeft <= 0)
+                mission.State.CurrentState = MissionState.State.Finished;
+        }
 
         await m_missionRepository.UpdateAsync(mission);
     }
