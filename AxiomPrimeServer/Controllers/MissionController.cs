@@ -1,6 +1,12 @@
+using AxiomPrime.ConfigLoaders;
+using AxiomPrime.Generators.Enemies;
+using AxiomPrime.Generators.Fight;
 using AxiomPrime.Generators.Items;
+using AxiomPrime.Models.Enemies;
 using AxiomPrime.Models.Fight;
+using AxiomPrime.Models.Items;
 using AxiomPrime.Services;
+using AxiomPrime_Metadata.Fight;
 using Microsoft.AspNetCore.Mvc;
 using Utilities.AuthorizationTools;
 
@@ -15,6 +21,8 @@ public class MissionController : ControllerBase
     private readonly IMissionRegenerationService m_missionRegenerationService;
 
     private ItemGenerator m_itemGenerator;
+    private FightSequenceGenerator m_fightGenerator;
+    private EnemyGenerator m_enemyGenerator;
 
     public MissionController(
         MissionAPI missionAPI,
@@ -29,6 +37,8 @@ public class MissionController : ControllerBase
         m_globalPlayerDataAPI = globalPlayerDataAPI;
         m_missionRegenerationService = missionRegenerationService;
         m_itemGenerator = new ItemGenerator(new AxiomPrime.Models.Stats.StatService());
+        m_fightGenerator = new FightSequenceGenerator();
+        m_enemyGenerator = new EnemyGenerator(new AxiomPrime.Models.Stats.StatService());
     }
 
     [HttpGet]
@@ -132,7 +142,7 @@ public class MissionController : ControllerBase
     /// </summary>
     /// <param name="missionID"></param>
     /// <returns></returns>
-    [HttpPost("seefight")]
+    [HttpGet("seefight")]
     public async Task<IActionResult> SeeMissionFight(Guid missionID)
     {
         if (!User.TryGetProfileId(out var profileId))
@@ -144,8 +154,57 @@ public class MissionController : ControllerBase
             return BadRequest("Mission not found");
     
         bool missionFightSeen = await m_missionAPI.SetMissionFightAsSeen(profileId, missionID);
-        if(missionFightSeen)
-            return Ok("Mission fight seen");
+        if (missionFightSeen)
+        {
+            //Generate fight
+            Enemy enemy = m_enemyGenerator.GenerateEnemy("Frigate", 15);
+            var ship = await m_shipInventoryAPI.GetShipAsync(mission.State.ShipID);
+            if(ship ==  null) return BadRequest("Ship Does not exists");
+            ShipStats playerStats = StatSummer.GetShipStats(new ShipStatProvider(ship));
+
+            FightSequence sequence = m_fightGenerator.GetSequence(playerStats, EnemyStat.GetShipStats(enemy.Stats));
+            FightSequenceDto fightSequenceDto = new FightSequenceDto
+            {
+                Identity = new FightSequenceIdentity()
+                {
+                    ID = new Guid(),
+                    ID_ParticipantA = profileId,
+                    Enemy = EnemyMapper.ToDto(enemy),
+                    PvP = false
+                },
+                GeneralData = sequence.GeneralData
+            };
+            //Update mission reward
+            if (sequence.GeneralData.ParticipantA_Won)
+            {
+                //Generate final Item
+                if(mission.Reward.Item == null)
+                {
+                    mission.Reward.Item = Item_Database.ToDatabaseItem(
+                        mission.Reward.GeneralData.ItemType != null 
+                            ? m_itemGenerator.GenerateItem(1, mission.Reward.GeneralData.ItemType.Value) 
+                            : m_itemGenerator.GenerateItem(1));
+
+                    await m_missionAPI.UpdateMissionReward(profileId, missionID, mission.Reward);
+                }
+
+                fightSequenceDto.Reward = MissionMapper.ToDto(mission.Reward);
+            }
+            else
+            {
+                mission.Reward.GeneralData.Credits = 0;
+                mission.Reward.GeneralData.Experience = 0;
+                mission.Reward.GeneralData.PremiumCurrency = 0;
+                mission.Reward.GeneralData.Scraps = 0;
+                mission.Reward.Item = null;
+                await m_missionAPI.UpdateMissionReward(profileId, missionID, mission.Reward);
+                fightSequenceDto.Reward = MissionMapper.ToDto(mission.Reward);
+            }
+            
+            //Send fight to client
+            return Ok(fightSequenceDto);
+        }
+            
 
         return BadRequest("Mission fight could not be seen");
 
@@ -181,11 +240,6 @@ public class MissionController : ControllerBase
 
                 if(mission.Reward.Item != null)
                     await m_inventoryAPI.AddItem(profileId, mission.Reward.Item);
-                else
-                    await m_inventoryAPI.AddItem(profileId, Item_Database.ToDatabaseItem(
-                        mission.Reward.GeneralData.ItemType != null 
-                            ? m_itemGenerator.GenerateItem(1, mission.Reward.GeneralData.ItemType.Value) 
-                            : m_itemGenerator.GenerateItem(1)));
             }
 
             //Ship unlock
