@@ -49,7 +49,7 @@ public class MissionController : ControllerBase
 
         ShipInventory inv = await m_shipInventoryAPI.GetAsync(profileId);
         Ship_Database ship = await m_shipInventoryAPI.GetShipAsync(inv.ActiveShip);
-        await RegenerateMissions(profileId, StatSummer.GetShipStats( new ShipStatProvider(ship)));
+        await m_missionRegenerationService.RegenerateMissionsAsync(profileId, StatSummer.GetShipStats(new ShipStatProvider(ship)));
 
         List<Mission_Database> current = await m_missionAPI.GetAsync(profileId);
         return Ok(MissionMapper.ToDto(current));
@@ -169,6 +169,7 @@ public class MissionController : ControllerBase
                 {
                     ID = new Guid(),
                     ID_ParticipantA = profileId,
+                    SHIP_ID_ParticipantA = mission.State.ShipID,
                     Enemy = EnemyMapper.ToDto(enemy),
                     PvP = false
                 },
@@ -257,15 +258,4 @@ public class MissionController : ControllerBase
         return BadRequest("Mission could not be finished");
     }
 
-
-    /// <summary>
-    /// Updates missions based on current ship stats
-    /// </summary>
-    /// <param name="profileId"></param>
-    /// <param name="currentShipStats"></param>
-    /// <returns></returns>
-    private async Task RegenerateMissions(string profileId, ShipStats currentShipStats)
-    {
-        await m_missionRegenerationService.RegenerateMissionsAsync(profileId, currentShipStats);
-    }
 }

@@ -16,19 +16,22 @@ public class AuthController : ControllerBase
     private readonly PlayerRepository m_playerService;
     private readonly InventoryAPI m_inventoryAPI;
     private readonly ShipInventoryAPI m_shipInventoryAPI;
+    private readonly GlobalPlayerDataAPI m_globalPlayerDataAPI;
 
     public AuthController(
         BrainCloudService brainCloud,
         IConfiguration config,
         PlayerRepository playerService,
         InventoryAPI inventoryAPI,
-        ShipInventoryAPI shipInventoryAPI)
+        ShipInventoryAPI shipInventoryAPI,
+        GlobalPlayerDataAPI globalPlayerDataAPI)
     {
         m_brainCloud = brainCloud;
         m_config = config;
         m_playerService = playerService;
         m_inventoryAPI = inventoryAPI;
         m_shipInventoryAPI = shipInventoryAPI;
+        m_globalPlayerDataAPI = globalPlayerDataAPI;
     }
 
     [HttpPost("login")]
@@ -52,6 +55,10 @@ public class AuthController : ControllerBase
                 brainUser.ProfileId,
                 brainUser.EmailAddress
             );
+
+            //Initilize data
+            await m_globalPlayerDataAPI.InitializePlayer(player.Id);
+
             //Add default ships
             CustomGrid<string> ship = new CustomGrid<string>(3,3, "Empty");
             ShipGrid shipGrid = ShipGrid.FromCustomGrid(ship);
@@ -63,7 +70,7 @@ public class AuthController : ControllerBase
             
             ItemGenerator itemGenerator = new ItemGenerator(new AxiomPrime.Models.Stats.StatService());
 
-            for(int i = 0; i < 5; i++){
+            for(int i = 0; i < 40; i++){
                 await m_inventoryAPI.AddItem(player.Id, Item_Database.ToDatabaseItem(itemGenerator.GenerateItem(1)));
             }
         }

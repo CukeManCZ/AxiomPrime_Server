@@ -11,6 +11,9 @@ public class GlobalPlayerDataAPI
         m_eventBus = eventBus;
     }
 
+    public Task InitializePlayer(string playerId)
+        => m_globalPlayerDataService.InitializePlayer(playerId);
+
     // =========================================================
     #region READ
     // =========================================================

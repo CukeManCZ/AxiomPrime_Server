@@ -1,3 +1,4 @@
+using AxiomPrime.Services;
 using AxiomPrime_DTOs.GlobalData;
 
 public class GlobalPlayerDataService : IGlobalPlayerDataService
@@ -33,13 +34,13 @@ public class GlobalPlayerDataService : IGlobalPlayerDataService
         await UpdateEnergyGeneration(energy);
         return new GlobalPlayerDataDTO
         {
-            Energy = energy.CurrentEnergy,
-            MaxEnergy = energy.MaxEnergy,
-            EnergyRegen = energy.RegenSpeed,
-
             Level = exp.Level,
             CurrentExp = exp.CurrentExperience,
             NextLevelExp = exp.NextLevelExperience,
+
+            Energy = energy.CurrentEnergy,
+            MaxEnergy = energy.MaxEnergy,
+            EnergyRegen = energy.RegenSpeed,
 
             Credits = curr.Credits,
             PremiumCredits = curr.PremiumCredits,
@@ -192,30 +193,37 @@ public class GlobalPlayerDataService : IGlobalPlayerDataService
         => m_playerLockProvider.WithLock(playerId, async () =>
         {
             var exp = await m_experience_repository.GetAsync(playerId);
-
+    
             exp.CurrentExperience += amount;
 
-            while (exp.CurrentExperience >= exp.NextLevelExperience)
+            //Level up
+            while(exp.CurrentExperience >= exp.NextLevelExperience)
             {
-                exp.CurrentExperience -= exp.NextLevelExperience;
+                int expAboveLevel = exp.CurrentExperience - exp.NextLevelExperience;
                 exp.Level++;
-
-                exp.NextLevelExperience = CalculateNextLevelExp(exp.Level);
+                exp.NextLevelExperience = (int) BalanceDataProvider.CalculateXpForLevel(exp.Level);
+                exp.CurrentExperience = expAboveLevel;
             }
 
             await m_experience_repository.SaveAsync(exp);
         });
 
-    #endregion
+    public Task InitializePlayer(string playerId)
+        => m_playerLockProvider.WithLock(playerId, async () =>
+            {
+                var exp = await m_experience_repository.GetAsync(playerId); 
+                exp.Level = 1;
+                exp.NextLevelExperience = (int) BalanceDataProvider.CalculateXpForLevel(1);
+                exp.CurrentExperience = 0;
 
-    // =========================================================
-    #region INTERNAL
-    // =========================================================
+                var currencies = await m_currencies_repository.GetAsync(playerId);
+                currencies.Credits = 100;
+                currencies.PremiumCredits = 999;
+                currencies.Scrap = 100;
 
-    private int CalculateNextLevelExp(int level)
-    {
-        return 100 + (level * 50);
-    }
-
+                await m_experience_repository.SaveAsync(exp);
+                await m_currencies_repository.SaveAsync(currencies);
+            });
+    
     #endregion
 }
