@@ -64,7 +64,6 @@ builder.Services.AddSingleton<PlayerLockProvider>();
 // Repositories
 builder.Services.AddScoped<ExperienceRepository>();
 builder.Services.AddScoped<CurrenciesRepository>();
-builder.Services.AddScoped<EnergyRepository>();
 builder.Services.AddScoped<PlayerRepository>();
 builder.Services.AddScoped<InventoryRepository>();
 builder.Services.AddScoped<ShipInventoryRepository>();

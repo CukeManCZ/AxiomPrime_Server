@@ -1,10 +1,8 @@
-using AxiomPrime.ConfigLoaders;
 using AxiomPrime.Generators.Enemies;
 using AxiomPrime.Generators.Fight;
 using AxiomPrime.Generators.Items;
 using AxiomPrime.Models.Enemies;
 using AxiomPrime.Models.Fight;
-using AxiomPrime.Models.Items;
 using AxiomPrime.Services;
 using AxiomPrime_Metadata.Fight;
 using Microsoft.AspNetCore.Mvc;
@@ -77,14 +75,24 @@ public class MissionController : ControllerBase
             return BadRequest("Ship not found");
         if(ship.IsLocked)
             return BadRequest("Ship can not travel multiple missions");
+        if(ship.GeneralData.CurrentEnergy < mission.GeneralData.EnergyCost)
+            return BadRequest("Ship doesnt have energy for travel");
 
         //Set mission with ship
         bool flyMission = await m_missionAPI.StartTravel(profileId, missionID, ship.Identity.Id);
         if (flyMission)
         {
             //Set ship as traveling
-            await m_shipInventoryAPI.SendToMission(ship.Identity.Id, missionID);
-            return Ok("Mission started");
+            if(await m_shipInventoryAPI.UseEnergy(ship.Identity.Id, mission.GeneralData.EnergyCost))
+            {
+                await m_shipInventoryAPI.SendToMission(ship.Identity.Id, missionID);
+                return Ok("Mission started");
+            }
+            else
+            {
+                return BadRequest("Ship doesnt have energy for travel");
+            }
+            
         }
             
         return BadRequest("Mission could not be started");
@@ -157,7 +165,7 @@ public class MissionController : ControllerBase
         if (missionFightSeen)
         {
             //Generate fight
-            Enemy enemy = m_enemyGenerator.GenerateEnemy("Frigate", 15);
+            Enemy enemy = m_enemyGenerator.GenerateEnemy("Frigate", mission.GeneralData.Level);
             var ship = await m_shipInventoryAPI.GetShipAsync(mission.State.ShipID);
             if(ship ==  null) return BadRequest("Ship Does not exists");
             ShipStats playerStats = StatSummer.GetShipStats(new ShipStatProvider(ship));
@@ -231,6 +239,9 @@ public class MissionController : ControllerBase
 
         if (missionFinished)
         {
+            var ship = await m_shipInventoryAPI.GetShipAsync(mission.State.ShipID);
+            ArgumentNullException.ThrowIfNull(ship);
+            
             //If not aborted mission give rewards
             if (!mission.State.Aborted)
             {
@@ -239,13 +250,13 @@ public class MissionController : ControllerBase
                 await m_globalPlayerDataAPI.AddExp(profileId, mission.Reward.GeneralData.Experience);
                 await m_globalPlayerDataAPI.AddScraps(profileId, mission.Reward.GeneralData.Scraps);
 
+                await m_shipInventoryAPI.AddExperience(ship.Identity.Id, mission.Reward.GeneralData.Experience);
+
                 if(mission.Reward.Item != null)
                     await m_inventoryAPI.AddItem(profileId, mission.Reward.Item);
             }
 
             //Ship unlock
-            var ship = await m_shipInventoryAPI.GetShipAsync(mission.State.ShipID);
-            ArgumentNullException.ThrowIfNull(ship);
             await m_shipInventoryAPI.ReturnFromMission(ship.Identity.Id);
 
             await m_missionAPI.RemoveMission(profileId, missionID);

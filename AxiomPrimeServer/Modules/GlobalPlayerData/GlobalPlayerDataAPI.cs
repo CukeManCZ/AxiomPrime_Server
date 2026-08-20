@@ -24,21 +24,6 @@ public class GlobalPlayerDataAPI
     #endregion
 
     // =========================================================
-    #region ENERGY
-    // =========================================================
-
-    public Task AddEnergy(string playerId, float amount)
-        => m_globalPlayerDataService.AddEnergy(playerId, amount);
-
-    public Task<bool> UseEnergy(string playerId, float amount)
-        => m_globalPlayerDataService.UseEnergy(playerId, amount);
-
-    public Task<bool> UpdateEnergyRegen(string playerId, float energyRegenSpeed)
-        => m_globalPlayerDataService.UpdateEnergyRegen(playerId, energyRegenSpeed);
-
-    #endregion
-
-    // =========================================================
     #region CURRENCY
     // =========================================================
 

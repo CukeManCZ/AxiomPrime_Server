@@ -1,3 +1,5 @@
+using AxiomPrime_Metadata.Ship;
+
 public interface IShipInventoryService
 {
     // =========================================
@@ -50,4 +52,15 @@ public interface IShipInventoryService
     Task<bool> RemoveItemAsync(Guid shipId, Guid itemId);
 
     ShipItem? GetItemAt(Ship_Database ship, int x, int y);
+
+    #region Experience
+    Task AddExp(Guid shipId, int amount);
+    #endregion
+
+    #region  Energy
+    Task AddEnergy(Guid shipId, float amount);
+    Task<bool> UseEnergy(Guid shipId, float amount);
+    Task UpdateEnergyRegenSpeed(Guid shipId, float amount);
+    Task UpdateEnergyMaximum(Guid shipId, float energyMaximum);
+    #endregion
 }

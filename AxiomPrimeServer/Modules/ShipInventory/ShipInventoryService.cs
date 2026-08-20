@@ -1,3 +1,6 @@
+using AxiomPrime.Services;
+using AxiomPrime_Metadata.Ship;
+
 public class ShipInventoryService : IShipInventoryService
 {
     private readonly ShipInventoryRepository m_repo;
@@ -11,11 +14,20 @@ public class ShipInventoryService : IShipInventoryService
     // GET
     // =========================================
 
-    public Task<ShipInventory> GetAsync(string playerId)
-        => m_repo.GetAsync(playerId);
+    #region Get Data
+    public async Task<ShipInventory> GetAsync(string playerId)
+    {
+        await UpdateEnergyGeneration(playerId);
+        return await m_repo.GetAsync(playerId);
+    }
 
-    public Task<Ship_Database> GetShipAsync(Guid shipId)
-        => m_repo.GetShipAsync(shipId);
+    public async Task<Ship_Database> GetShipAsync(Guid shipId)
+    {
+        await UpdateEnergyGeneration(shipId);
+        return await m_repo.GetShipAsync(shipId);
+    }
+        
+    #endregion
 
     // =========================================
     // CREATE SHIP (NOW WITH LIMIT CHECK)
@@ -40,7 +52,17 @@ public class ShipInventoryService : IShipInventoryService
             ShipInventoryId = playerId,
             Grid = template,
             IsLocked = false,
-            Items = new List<ShipItem>()
+            Items = new List<ShipItem>(),
+            GeneralData = new ShipGeneralData()
+            {
+                Level = 1,
+                CurrentExperience = 0, //TODO: Update this
+                NextLevelExperience = (int) BalanceDataProvider.CalculateXpForLevel(1),
+                CurrentEnergy = 0,
+                MaxEnergy = 100,
+                EnergyRegenSpeed = 5,
+                LastEnergyUpdate = DateTime.UtcNow   
+            }
         };
 
         inventory.Ships.Add(ship);
@@ -388,5 +410,99 @@ public class ShipInventoryService : IShipInventoryService
         return true;
     }
 
+    #endregion
+
+    #region Experience
+    public async Task AddExp(Guid shipId, int amount)
+    {
+        var ship = await m_repo.GetShipAsync(shipId);
+
+        ship.GeneralData.CurrentExperience += amount;
+
+        //Level up
+        while(ship.GeneralData.CurrentExperience >= ship.GeneralData.NextLevelExperience)
+        {
+            int expAboveLevel = ship.GeneralData.CurrentExperience - ship.GeneralData.NextLevelExperience;
+            ship.GeneralData.Level++;
+            ship.GeneralData.NextLevelExperience = (int) BalanceDataProvider.CalculateXpForLevel(ship.GeneralData.Level);
+            ship.GeneralData.CurrentExperience = expAboveLevel;
+        }
+
+        await m_repo.SaveAsync();
+    }
+    #endregion
+
+    #region Energy
+    public async Task AddEnergy(Guid shipId, float amount)
+    {
+        var ship = await m_repo.GetShipAsync(shipId);
+
+        ship.GeneralData.CurrentEnergy = Math.Min(
+            ship.GeneralData.CurrentEnergy + amount,
+            ship.GeneralData.MaxEnergy
+        );
+
+        await m_repo.SaveAsync();
+    }
+
+    public async Task<bool> UseEnergy(Guid shipId, float amount)
+    {
+        var ship = await m_repo.GetShipAsync(shipId);
+
+        if(ship.GeneralData.CurrentEnergy > amount)
+        {
+            ship.GeneralData.CurrentEnergy -= amount;
+            await m_repo.SaveAsync();
+            return true;
+        }
+
+        return false;
+    }
+
+    public async Task UpdateEnergyRegenSpeed(Guid shipId, float energyRegenSpeed)
+    {
+        var ship = await m_repo.GetShipAsync(shipId);
+        if(energyRegenSpeed < 0.1f)
+            ship.GeneralData.EnergyRegenSpeed = 0.1f;
+        else
+            ship.GeneralData.EnergyRegenSpeed = energyRegenSpeed;
+
+        await m_repo.SaveAsync();
+    }
+
+    public async Task UpdateEnergyMaximum(Guid shipId, float energyMaximum)
+    {
+        var ship = await m_repo.GetShipAsync(shipId);
+        if(energyMaximum < 100)
+            ship.GeneralData.MaxEnergy = 100;
+        else
+            ship.GeneralData.MaxEnergy = energyMaximum;
+
+        await m_repo.SaveAsync();
+    }
+
+    private async Task UpdateEnergyGeneration(Guid shipId)
+    {
+        var ship = await m_repo.GetShipAsync(shipId);
+
+        var now = DateTime.UtcNow;
+        var seconds = (now - ship.GeneralData.LastEnergyUpdate).TotalSeconds;
+
+        var generated = (float)(seconds * ship.GeneralData.EnergyRegenSpeed);
+
+        ship.GeneralData.CurrentEnergy = Math.Min(
+            ship.GeneralData.CurrentEnergy + generated,
+            ship.GeneralData.MaxEnergy
+        );
+    }
+
+    private async Task UpdateEnergyGeneration(string playerId)
+    {
+        var shipInventory = await m_repo.GetAsync(playerId);
+        foreach(var ship in shipInventory.Ships)
+        {
+            await UpdateEnergyGeneration(ship.Identity.Id);
+        }
+    }
     #endregion
 }

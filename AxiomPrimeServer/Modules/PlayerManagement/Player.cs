@@ -10,5 +10,4 @@ public class Player
     public required string Email {get; set; }
     public Currencies? Currencies {get; set;}
     public Experience? Experience {get; set;}
-    public Energy? Energy {get; set;}
 }

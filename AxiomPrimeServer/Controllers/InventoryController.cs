@@ -75,6 +75,9 @@ public class InventoryController : ControllerBase
         var result = await m_shipInventoryAPI.SelectActiveShip(profileId, shipId);
         if (result)
         {
+            await m_shipInventoryAPI.UpdateEnergyRegenSpeed(shipId, StatSummer.GetShipStats(new ShipStatProvider(ship)).GetValue(AxiomPrime_Metadata.General.StatId.EnergyGeneration));
+            await m_shipInventoryAPI.UpdateEnergyMaximum(shipId, StatSummer.GetShipStats(new ShipStatProvider(ship)).GetValue(AxiomPrime_Metadata.General.StatId.Energy));
+            
             await m_missionRegenerationService.RegenerateMissionsAsync(profileId, StatSummer.GetShipStats(new ShipStatProvider(ship)));
             return Ok();
         }
@@ -135,6 +138,10 @@ public class InventoryController : ControllerBase
                     await m_shipInventoryAPI.PlaceItem(shipId, item, previousItem.X, previousItem.Y);
                     await m_inventoryAPI.EquipItem(profileId, itemId);
                 }
+
+                //Update ship and missions
+                await m_shipInventoryAPI.UpdateEnergyRegenSpeed(shipId, StatSummer.GetShipStats(new ShipStatProvider(ship)).GetValue(AxiomPrime_Metadata.General.StatId.EnergyGeneration));
+                await m_shipInventoryAPI.UpdateEnergyMaximum(shipId, StatSummer.GetShipStats(new ShipStatProvider(ship)).GetValue(AxiomPrime_Metadata.General.StatId.Energy));
                 await m_missionRegenerationService.RegenerateMissionsAsync(profileId, StatSummer.GetShipStats(new ShipStatProvider(ship)));
                 return Ok();
             }
@@ -147,6 +154,10 @@ public class InventoryController : ControllerBase
             //Place item normally
             if(await m_shipInventoryAPI.PlaceItem(shipId, item, x, y))
                 if(await m_inventoryAPI.EquipItem(profileId, itemId)){
+
+                    //Update ship and missions
+                    await m_shipInventoryAPI.UpdateEnergyRegenSpeed(shipId, StatSummer.GetShipStats(new ShipStatProvider(ship)).GetValue(AxiomPrime_Metadata.General.StatId.EnergyGeneration));
+                    await m_shipInventoryAPI.UpdateEnergyMaximum(shipId, StatSummer.GetShipStats(new ShipStatProvider(ship)).GetValue(AxiomPrime_Metadata.General.StatId.Energy));
                     await m_missionRegenerationService.RegenerateMissionsAsync(profileId, StatSummer.GetShipStats(new ShipStatProvider(ship)));
                     return Ok();
                 }
@@ -163,6 +174,10 @@ public class InventoryController : ControllerBase
                 //Place new in ship
                 await m_shipInventoryAPI.PlaceItem(shipId, item, x, y);
                 await m_inventoryAPI.EquipItem(profileId, item.Id);
+
+                //Update ship and missions
+                await m_shipInventoryAPI.UpdateEnergyRegenSpeed(shipId, StatSummer.GetShipStats(new ShipStatProvider(ship)).GetValue(AxiomPrime_Metadata.General.StatId.EnergyGeneration));
+                await m_shipInventoryAPI.UpdateEnergyMaximum(shipId, StatSummer.GetShipStats(new ShipStatProvider(ship)).GetValue(AxiomPrime_Metadata.General.StatId.Energy));
                 await m_missionRegenerationService.RegenerateMissionsAsync(profileId, StatSummer.GetShipStats(new ShipStatProvider(ship)));
                 return Ok();
             }
@@ -191,6 +206,9 @@ public class InventoryController : ControllerBase
             if(await m_shipInventoryAPI.PlaceItem(shipId, item))
                 if(await m_inventoryAPI.EquipItem(profileId, itemId))
                 {
+                    //Update ship and missions
+                    await m_shipInventoryAPI.UpdateEnergyRegenSpeed(shipId, StatSummer.GetShipStats(new ShipStatProvider(ship)).GetValue(AxiomPrime_Metadata.General.StatId.EnergyGeneration));
+                    await m_shipInventoryAPI.UpdateEnergyMaximum(shipId, StatSummer.GetShipStats(new ShipStatProvider(ship)).GetValue(AxiomPrime_Metadata.General.StatId.Energy));
                     await m_missionRegenerationService.RegenerateMissionsAsync(profileId, StatSummer.GetShipStats(new ShipStatProvider(ship)));
                     return Ok();
                 }
@@ -229,8 +247,13 @@ public class InventoryController : ControllerBase
             return BadRequest("Item does not exist in ship");
         
         var result = await m_shipInventoryAPI.RemoveItem(ship.Identity.Id, item.Id) && await m_inventoryAPI.UnEquipItem(profileId, itemId);
-        if(result)
+        if (result)
+        {
+            await m_shipInventoryAPI.UpdateEnergyRegenSpeed(ship.Identity.Id, StatSummer.GetShipStats(new ShipStatProvider(ship)).GetValue(AxiomPrime_Metadata.General.StatId.EnergyGeneration));
+            await m_shipInventoryAPI.UpdateEnergyMaximum(ship.Identity.Id, StatSummer.GetShipStats(new ShipStatProvider(ship)).GetValue(AxiomPrime_Metadata.General.StatId.Energy));
             await m_missionRegenerationService.RegenerateMissionsAsync(profileId, StatSummer.GetShipStats(new ShipStatProvider(ship)));
+        }
+            
         return result ? Ok() : BadRequest("Item not dequipped");
     }
 
@@ -254,6 +277,8 @@ public class InventoryController : ControllerBase
             await m_inventoryAPI.AddItem(profileId, shipItem.Item);
         }
 
+        await m_shipInventoryAPI.UpdateEnergyRegenSpeed(ship.Identity.Id, StatSummer.GetShipStats(new ShipStatProvider(ship)).GetValue(AxiomPrime_Metadata.General.StatId.EnergyGeneration));
+        await m_shipInventoryAPI.UpdateEnergyMaximum(ship.Identity.Id, StatSummer.GetShipStats(new ShipStatProvider(ship)).GetValue(AxiomPrime_Metadata.General.StatId.Energy));
         await m_missionRegenerationService.RegenerateMissionsAsync(profileId, StatSummer.GetShipStats(new ShipStatProvider(ship)));
         return Ok();
     }

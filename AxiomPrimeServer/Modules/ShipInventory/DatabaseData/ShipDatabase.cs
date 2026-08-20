@@ -106,21 +106,21 @@ public class Ship_Database
 
     public int CurrentExp
     {
-        get => GeneralData?.CurrentExp ?? 0;
+        get => GeneralData?.CurrentExperience ?? 0;
         set
         {
             GeneralData ??= new ShipGeneralData();
-            GeneralData.CurrentExp = value;
+            GeneralData.CurrentExperience = value;
         }
     }
 
     public int MaxExp
     {
-        get => GeneralData?.MaxExp ?? 0;
+        get => GeneralData?.NextLevelExperience ?? 0;
         set
         {
             GeneralData ??= new ShipGeneralData();
-            GeneralData.MaxExp = value;
+            GeneralData.NextLevelExperience = value;
         }
     }
 

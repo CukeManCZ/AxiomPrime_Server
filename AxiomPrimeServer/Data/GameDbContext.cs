@@ -10,7 +10,6 @@ public class GameDbContext : DbContext
     public DbSet<Player> Players { get; set; }
     public DbSet<Currencies> Currencies {get; set;}
     public DbSet<Experience> Experiences {get; set;}
-    public DbSet<Energy> Energies {get; set;}
 
     public DbSet<Inventory> Inventories {get; set;}
     public DbSet<Item_Database> Items { get; set; }
@@ -26,9 +25,6 @@ public class GameDbContext : DbContext
             .HasKey(x => x.PlayerID); 
 
         modelBuilder.Entity<Experience>()
-            .HasKey(x => x.PlayerID);
-
-        modelBuilder.Entity<Energy>()
             .HasKey(x => x.PlayerID);
 
         modelBuilder.Entity<Player>()
