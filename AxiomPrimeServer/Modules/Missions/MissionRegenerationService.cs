@@ -11,16 +11,18 @@ public class MissionRegenerationService : IMissionRegenerationService
 {
     private readonly MissionAPI m_missionAPI;
     private readonly GlobalPlayerDataAPI m_globalAPI;
+    private readonly ShipInventoryAPI m_shipInventoryAPI;
     private readonly MissionGenerator m_missionGenerator = new();
 
     // Prevents multiple regeneration operations from running
     // simultaneously inside this server process.
     private static readonly SemaphoreSlim _regenerationLock = new(1, 1);
 
-    public MissionRegenerationService(MissionAPI missionAPI, GlobalPlayerDataAPI globalPlayerDataAPI)
+    public MissionRegenerationService(MissionAPI missionAPI, GlobalPlayerDataAPI globalPlayerDataAPI, ShipInventoryAPI shipInventoryAPI)
     {
         m_missionAPI = missionAPI;
         m_globalAPI = globalPlayerDataAPI;
+        m_shipInventoryAPI = shipInventoryAPI;
     }
 
     public async Task RegenerateMissionsAsync(string profileId, ShipStats stats)
@@ -49,20 +51,38 @@ public class MissionRegenerationService : IMissionRegenerationService
 
             // IMPORTANT:
             // Get the missions again after updates.
+            var shipInv = await m_shipInventoryAPI.GetAsync(profileId);
             current = await m_missionAPI.GetAsync(profileId);
-
-            // Only add missions when there are fewer than 3.
-            while (current.Count < 3)
+            
+            foreach(var ship in shipInv.Ships)
             {
-                await m_missionAPI.AddMission(
-                    profileId,
-                    Mission_Database.ToDatabaseMission(
+                var missionsDedyceted = current.Where(x => x.Identity.GeneratedForShipID == ship.Identity.Id);
+                if(missionsDedyceted.FirstOrDefault(x => x.Identity.Difficulty == MissionDifficulty.Easy) == null)
+                {
+                    var mission = m_missionGenerator.GenerateGenericMission(ship.GeneralData.Level, MissionDifficulty.Easy, stats);
+                    mission.Identity.GeneratedForShipID = ship.Identity.Id;
+                    await m_missionAPI.AddMission(
                         profileId,
-                        m_missionGenerator.GenerateMission(globalData.Level, stats)));
-
-                // Refresh count after every insert.
-                current = await m_missionAPI.GetAsync(profileId);
+                        Mission_Database.ToDatabaseMission(profileId, mission));
+                }
+                if(missionsDedyceted.FirstOrDefault(x => x.Identity.Difficulty == MissionDifficulty.Medium) == null)
+                {
+                    var mission = m_missionGenerator.GenerateGenericMission(ship.GeneralData.Level, MissionDifficulty.Medium, stats);
+                    mission.Identity.GeneratedForShipID = ship.Identity.Id;
+                    await m_missionAPI.AddMission(
+                        profileId,
+                        Mission_Database.ToDatabaseMission(profileId, mission));
+                }
+                if(missionsDedyceted.FirstOrDefault(x => x.Identity.Difficulty == MissionDifficulty.Hard) == null)
+                {
+                    var mission = m_missionGenerator.GenerateGenericMission(ship.GeneralData.Level, MissionDifficulty.Hard, stats);
+                    mission.Identity.GeneratedForShipID = ship.Identity.Id;
+                    await m_missionAPI.AddMission(
+                        profileId,
+                        Mission_Database.ToDatabaseMission(profileId, mission));
+                }
             }
+            
         }
         finally
         {

@@ -59,9 +59,9 @@ public class ShipInventoryService : IShipInventoryService
                 CurrentExperience = 0, //TODO: Update this
                 NextLevelExperience = (int) BalanceDataProvider.CalculateXpForLevel(1),
                 CurrentEnergy = 0,
-                MaxEnergy = 100,
-                EnergyRegenSpeed = 5,
-                LastEnergyUpdate = DateTime.UtcNow   
+                MaxEnergy = BalanceDataProvider.CalculateEnergyCap(0),
+                EnergyRegenSpeed = BalanceDataProvider.CalculateEnergyGeneration(0),
+                LastEnergyUpdate = DateTime.UtcNow
             }
         };
 
@@ -462,10 +462,7 @@ public class ShipInventoryService : IShipInventoryService
     public async Task UpdateEnergyRegenSpeed(Guid shipId, float energyRegenSpeed)
     {
         var ship = await m_repo.GetShipAsync(shipId);
-        if(energyRegenSpeed < 0.1f)
-            ship.GeneralData.EnergyRegenSpeed = 0.1f;
-        else
-            ship.GeneralData.EnergyRegenSpeed = energyRegenSpeed;
+        ship.GeneralData.EnergyRegenSpeed = BalanceDataProvider.CalculateEnergyGeneration(energyRegenSpeed);
 
         await m_repo.SaveAsync();
     }
@@ -473,10 +470,7 @@ public class ShipInventoryService : IShipInventoryService
     public async Task UpdateEnergyMaximum(Guid shipId, float energyMaximum)
     {
         var ship = await m_repo.GetShipAsync(shipId);
-        if(energyMaximum < 100)
-            ship.GeneralData.MaxEnergy = 100;
-        else
-            ship.GeneralData.MaxEnergy = energyMaximum;
+        ship.GeneralData.MaxEnergy = BalanceDataProvider.CalculateEnergyCap(energyMaximum);
 
         await m_repo.SaveAsync();
     }
