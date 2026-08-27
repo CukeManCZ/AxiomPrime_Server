@@ -2,6 +2,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using AxiomPrime.Templates;
+using YamlDotNet.Serialization;
+using AxiomPrime.Generators.Items;
+using AxiomPrime.Generators.Enemies;
+using AxiomPrime.Generators.Missions;
 using AxiomPrime.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -82,6 +87,24 @@ builder.Services.AddScoped<GlobalPlayerDataAPI>();
 builder.Services.AddScoped<InventoryAPI>();
 builder.Services.AddScoped<ShipInventoryAPI>();
 builder.Services.AddScoped<MissionAPI>();
+
+// Core mechanics
+builder.Services.AddSingleton<TemplateLoader>(sp =>
+{
+    var configuration = sp.GetRequiredService<IConfiguration>();
+    var templateRootPath = configuration["Templates:RootPath"];
+    if (string.IsNullOrWhiteSpace(templateRootPath))
+    {
+        throw new InvalidOperationException(
+            "Templates:RootPath is not configured.");
+    }
+
+    return new TemplateLoader(templateRootPath);
+});
+builder.Services.AddSingleton<StatSummer>();
+builder.Services.AddSingleton<ItemGenerator>();
+builder.Services.AddSingleton<EnemyGenerator>();
+builder.Services.AddSingleton<MissionGenerator>();
 
 // HTTP Clients
 builder.Services.AddHttpClient<BrainCloudClient>();

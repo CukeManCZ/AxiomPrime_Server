@@ -5,12 +5,12 @@ using Utilities.DataStructures;
 
 public static class ShipMapper
 {
-    public static ShipDto ToDto(Ship_Database ship)
+    public static ShipDto ToDto(Ship_Database ship, StatSummer statSummer)
     {
         ArgumentNullException.ThrowIfNull(ship);
 
         ShipStatProvider shipStatProvider = new ShipStatProvider(ship);
-        var shipStats = StatSummer.GetShipStats(shipStatProvider);
+        var shipStats = statSummer.GetShipStats(shipStatProvider);
 
         return new ShipDto
         {
@@ -34,16 +34,22 @@ public static class ShipMapper
         };
     }
 
-    public static ShipInventoryDto ToDto(ShipInventory inventory)
+    public static List<ShipDto> ToDto(List<Ship_Database> ships, StatSummer statSummer){
+        List<ShipDto> shipDtos = new();
+        foreach(var ship in ships)
+            shipDtos.Add(ToDto(ship, statSummer));
+        return shipDtos;
+    }
+
+    public static ShipInventoryDto ToDto(ShipInventory inventory, StatSummer statSummer)
     {
         ArgumentNullException.ThrowIfNull(inventory);
+
 
         return new ShipInventoryDto
         {
             NumOfShips = inventory.NumOfShips,
-            Ships = inventory.Ships
-                .Select(ToDto)
-                .ToList(),
+            Ships = ToDto(inventory.Ships, statSummer),
             ActiveShip = inventory.ActiveShip
         };
     }

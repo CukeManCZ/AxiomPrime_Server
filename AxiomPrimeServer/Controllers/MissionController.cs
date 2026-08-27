@@ -4,6 +4,7 @@ using AxiomPrime.Generators.Items;
 using AxiomPrime.Models.Enemies;
 using AxiomPrime.Models.Fight;
 using AxiomPrime.Services;
+using AxiomPrime_DTOs.Inventory;
 using AxiomPrime_Metadata.Fight;
 using Microsoft.AspNetCore.Mvc;
 using Utilities.AuthorizationTools;
@@ -22,21 +23,27 @@ public class MissionController : ControllerBase
     private FightSequenceGenerator m_fightGenerator;
     private EnemyGenerator m_enemyGenerator;
 
+    private StatSummer m_statSummer;
+
     public MissionController(
         MissionAPI missionAPI,
         InventoryAPI inventoryAPI,
         ShipInventoryAPI shipInventoryAPI,
         GlobalPlayerDataAPI globalPlayerDataAPI,
-        IMissionRegenerationService missionRegenerationService)
+        StatSummer statSummer,
+        IMissionRegenerationService missionRegenerationService,
+        ItemGenerator itemGenerator,
+        EnemyGenerator enemyGenerator)
     {
         m_missionAPI = missionAPI;
         m_inventoryAPI = inventoryAPI;
         m_shipInventoryAPI = shipInventoryAPI;
         m_globalPlayerDataAPI = globalPlayerDataAPI;
         m_missionRegenerationService = missionRegenerationService;
-        m_itemGenerator = new ItemGenerator(new AxiomPrime.Models.Stats.StatService());
+        m_itemGenerator = itemGenerator;
         m_fightGenerator = new FightSequenceGenerator();
-        m_enemyGenerator = new EnemyGenerator(new AxiomPrime.Models.Stats.StatService());
+        m_enemyGenerator = enemyGenerator;
+        m_statSummer = statSummer;
     }
 
     [HttpGet]
@@ -47,7 +54,7 @@ public class MissionController : ControllerBase
 
         ShipInventory inv = await m_shipInventoryAPI.GetAsync(profileId);
         Ship_Database ship = await m_shipInventoryAPI.GetShipAsync(inv.ActiveShip);
-        await m_missionRegenerationService.RegenerateMissionsAsync(profileId, StatSummer.GetShipStats(new ShipStatProvider(ship)));
+        await m_missionRegenerationService.RegenerateMissionsAsync(profileId, m_statSummer.GetShipStats(new ShipStatProvider(ship)));
 
         List<Mission_Database> current = await m_missionAPI.GetAsync(profileId);
         return Ok(MissionMapper.ToDto(current));
@@ -168,9 +175,9 @@ public class MissionController : ControllerBase
             Enemy enemy = m_enemyGenerator.GenerateEnemy("Frigate", mission.GeneralData.Level);
             var ship = await m_shipInventoryAPI.GetShipAsync(mission.State.ShipID);
             if(ship ==  null) return BadRequest("Ship Does not exists");
-            ShipStats playerStats = StatSummer.GetShipStats(new ShipStatProvider(ship));
-
-            FightSequence sequence = m_fightGenerator.GetSequence(playerStats, EnemyStat.GetShipStats(enemy.Stats));
+            ShipStats playerStats = m_statSummer.GetShipStats(new ShipStatProvider(ship));
+            ShipStats enemyStats = m_statSummer.GetShipStats(enemy.Stats);
+            FightSequence sequence = m_fightGenerator.GetSequence(playerStats, enemyStats);
             FightSequenceDto fightSequenceDto = new FightSequenceDto
             {
                 Identity = new FightSequenceIdentity()
@@ -178,7 +185,7 @@ public class MissionController : ControllerBase
                     ID = new Guid(),
                     ID_ParticipantA = profileId,
                     SHIP_ID_ParticipantA = mission.State.ShipID,
-                    Enemy = EnemyMapper.ToDto(enemy),
+                    Enemy = EnemyMapper.ToDto(enemy, m_statSummer),
                     PvP = false
                 },
                 GeneralData = sequence.GeneralData
@@ -262,7 +269,7 @@ public class MissionController : ControllerBase
             await m_missionAPI.RemoveMission(profileId, missionID);
             ShipInventory inv = await m_shipInventoryAPI.GetAsync(profileId);
             Ship_Database activeShip = await m_shipInventoryAPI.GetShipAsync(inv.ActiveShip);
-            await m_missionRegenerationService.RegenerateMissionsAsync(profileId, StatSummer.GetShipStats(new ShipStatProvider(activeShip)));
+            await m_missionRegenerationService.RegenerateMissionsAsync(profileId, m_statSummer.GetShipStats(new ShipStatProvider(activeShip)));
 
             return Ok("Mission finished");
         }

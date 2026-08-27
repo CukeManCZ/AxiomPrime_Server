@@ -10,11 +10,13 @@ public class GameController : ControllerBase
 {
     private readonly InventoryAPI m_inventoryAPI;
     private readonly ShipInventoryAPI m_shipInventoryAPI;
+    private readonly ItemGenerator m_itemGenerator;
 
-    public GameController(InventoryAPI inventoryAPI, ShipInventoryAPI shipInventoryAPI)
+    public GameController(InventoryAPI inventoryAPI, ShipInventoryAPI shipInventoryAPI, ItemGenerator itemGenerator)
     {
         m_inventoryAPI = inventoryAPI;
         m_shipInventoryAPI = shipInventoryAPI;
+        m_itemGenerator = itemGenerator;
     }
 
     [Authorize]
@@ -24,9 +26,7 @@ public class GameController : ControllerBase
         if (!User.TryGetProfileId(out var profileId))
             return Unauthorized();
 
-        ItemGenerator itemGenerator = new ItemGenerator(new AxiomPrime.Models.Stats.StatService());
-
-        Item item = itemGenerator.GenerateItem(1);
+        Item item = m_itemGenerator.GenerateItem(1);
         Item_Database item_Database = Item_Database.ToDatabaseItem(item);
 
         if (await m_inventoryAPI.AddItem(profileId, item_Database))

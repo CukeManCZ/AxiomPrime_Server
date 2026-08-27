@@ -6,7 +6,7 @@ using AxiomPrime_Metadata.General;
 
 public static class EnemyMapper
 {
-    public static EnemyDto ToDto(Enemy enemy)
+    public static EnemyDto ToDto(Enemy enemy, StatSummer statSummer)
     {
         ArgumentNullException.ThrowIfNull(enemy);
 
@@ -14,7 +14,7 @@ public static class EnemyMapper
             .Select(s => new GenericStat { Identity = s.Identity, GeneralData = s.GeneralData })
             .ToList() ?? new List<GenericStat>();
 
-        var shipStats = StatSummer.GetShipStats(genericStats);
+        var shipStats = statSummer.GetShipStats(genericStats);
 
         return new EnemyDto
         {
@@ -33,11 +33,11 @@ public static class EnemyMapper
         };
     }
 
-    public static List<EnemyDto> ToDto(List<Enemy> enemies)
+    public static List<EnemyDto> ToDto(List<Enemy> enemies, StatSummer statSummer)
     {
         var result = new List<EnemyDto>();
         foreach (var e in enemies)
-            result.Add(ToDto(e));
+            result.Add(ToDto(e, statSummer));
 
         return result;
     }

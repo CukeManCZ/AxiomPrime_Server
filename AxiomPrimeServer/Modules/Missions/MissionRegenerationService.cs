@@ -12,17 +12,18 @@ public class MissionRegenerationService : IMissionRegenerationService
     private readonly MissionAPI m_missionAPI;
     private readonly GlobalPlayerDataAPI m_globalAPI;
     private readonly ShipInventoryAPI m_shipInventoryAPI;
-    private readonly MissionGenerator m_missionGenerator = new();
+    private readonly MissionGenerator m_missionGenerator;
 
     // Prevents multiple regeneration operations from running
     // simultaneously inside this server process.
     private static readonly SemaphoreSlim _regenerationLock = new(1, 1);
 
-    public MissionRegenerationService(MissionAPI missionAPI, GlobalPlayerDataAPI globalPlayerDataAPI, ShipInventoryAPI shipInventoryAPI)
+    public MissionRegenerationService(MissionAPI missionAPI, GlobalPlayerDataAPI globalPlayerDataAPI, ShipInventoryAPI shipInventoryAPI, MissionGenerator missionGenerator)
     {
         m_missionAPI = missionAPI;
         m_globalAPI = globalPlayerDataAPI;
         m_shipInventoryAPI = shipInventoryAPI;
+        m_missionGenerator = missionGenerator;
     }
 
     public async Task RegenerateMissionsAsync(string profileId, ShipStats stats)
