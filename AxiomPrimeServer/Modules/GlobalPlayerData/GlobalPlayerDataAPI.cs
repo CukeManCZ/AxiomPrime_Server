@@ -65,5 +65,34 @@ public class GlobalPlayerDataAPI
     public Task AddExp(string playerId, int amount)
         => m_globalPlayerDataService.AddExp(playerId, amount);
 
+    /// <summary>
+    /// Grants credits, premium currency, experience and scraps of one mission in a
+    /// single atomic operation.
+    /// </summary>
+    public async Task AddMissionRewards(
+        string playerId,
+        int credits,
+        int premiumCredits,
+        int experience,
+        int scraps)
+    {
+        await m_globalPlayerDataService.AddMissionRewards(
+            playerId,
+            credits,
+            premiumCredits,
+            experience,
+            scraps);
+
+        var playerGlobalDataDTO = await m_globalPlayerDataService.GetAsync(playerId);
+
+        await m_eventBus.Publish(new CurrencyDataUpdated()
+        {
+            PlayerId = playerId,
+            Credits = playerGlobalDataDTO.Credits,
+            PremiumCredits = playerGlobalDataDTO.PremiumCredits,
+            Scraps = playerGlobalDataDTO.Scraps
+        });
+    }
+
     #endregion
 }

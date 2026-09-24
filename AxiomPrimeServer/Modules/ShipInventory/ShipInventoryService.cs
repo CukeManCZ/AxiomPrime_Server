@@ -1,14 +1,57 @@
+using AxiomPrime.Models.Ship;
 using AxiomPrime.Services;
 using AxiomPrime_Metadata.Ship;
 
 public class ShipInventoryService : IShipInventoryService
 {
     private readonly ShipInventoryRepository m_repo;
+    private readonly PlayerLockProvider m_playerLockProvider;
 
-    public ShipInventoryService(ShipInventoryRepository repo)
+    public ShipInventoryService(
+        ShipInventoryRepository repo,
+        PlayerLockProvider playerLockProvider)
     {
         m_repo = repo;
+        m_playerLockProvider = playerLockProvider;
     }
+
+    // =========================================================
+    // CONCURRENCY
+    //
+    // Everything about a ship (level, experience, energy, grid,
+    // slots, lock state) lives in one jsonb document per ship, so
+    // every save overwrites the whole document. Two overlapping
+    // operations would silently discard one of them, so every
+    // operation that saves runs inside the per player lock.
+    //
+    // Naming rule:
+    //   Public  ...Async   - acquires the lock, calls the core
+    //   Private ...Locked  - assumes the lock is ALREADY held and
+    //                        only ever calls other ...Locked
+    //                        methods. Never acquires the lock,
+    //                        because the semaphore is not
+    //                        reentrant and would deadlock.
+    //
+    // Read only operations are not locked, they never write.
+    // =========================================================
+
+    private async Task<T> WithShipLockAsync<T>(Guid shipId, Func<Task<T>> action)
+    {
+        var playerId = await m_repo.GetOwnerIdOfShip(shipId);
+        return await m_playerLockProvider.WithLock(playerId, action);
+    }
+
+    private async Task WithShipLockAsync(Guid shipId, Func<Task> action)
+    {
+        var playerId = await m_repo.GetOwnerIdOfShip(shipId);
+        await m_playerLockProvider.WithLock(playerId, action);
+    }
+
+    private Task<T> WithPlayerLockAsync<T>(string playerId, Func<Task<T>> action)
+        => m_playerLockProvider.WithLock(playerId, action);
+
+    private Task WithPlayerLockAsync(string playerId, Func<Task> action)
+        => m_playerLockProvider.WithLock(playerId, action);
 
     // =========================================
     // GET
@@ -21,21 +64,54 @@ public class ShipInventoryService : IShipInventoryService
         return await m_repo.GetAsync(playerId);
     }
 
+    /// <summary>
+    /// Read only access for callers that are not about to save. Returns the
+    /// instance the change tracker already holds, which after any ship operation
+    /// in this request is the one that was just saved.
+    /// </summary>
     public async Task<Ship_Database> GetShipAsync(Guid shipId)
     {
         await UpdateEnergyGeneration(shipId);
         return await m_repo.GetShipAsync(shipId);
     }
-        
+
+    /// <summary>
+    /// Loads a ship for an operation that is about to modify and save it.
+    ///
+    /// Tracked ship rows are dropped first on purpose. Without that EF hands back
+    /// the instance this request happened to read earlier, which can be older than
+    /// whatever another request committed while we were waiting for the lock.
+    /// Saving that instance would rewrite the whole ship document and silently
+    /// undo the other request, which is the exact race the lock exists to prevent.
+    ///
+    /// Only ever call this from a ...Locked method, and only for the ship the
+    /// current operation is about to save.
+    /// </summary>
+    private async Task<Ship_Database> ReloadShipLocked(Guid shipId)
+    {
+        m_repo.DiscardTrackedShips();
+        await UpdateEnergyGeneration(shipId);
+        return await m_repo.GetShipAsync(shipId);
+    }
+
+    private async Task<ShipInventory> ReloadInventoryLocked(string playerId)
+    {
+        m_repo.DiscardTrackedShips();
+        return await m_repo.GetAsync(playerId);
+    }
+
     #endregion
 
     // =========================================
     // CREATE SHIP (NOW WITH LIMIT CHECK)
     // =========================================
 
-    public async Task<Ship_Database> CreateShipAsync(string playerId, ShipGrid template)
+    public Task<Ship_Database> CreateShipAsync(string playerId, Ship inShip)
+        => WithPlayerLockAsync(playerId, () => CreateShipLocked(playerId, inShip));
+
+    private async Task<Ship_Database> CreateShipLocked(string playerId, Ship inShip)
     {
-        var inventory = await m_repo.GetAsync(playerId);
+        var inventory = await ReloadInventoryLocked(playerId);
 
         // CURRENT SHIP COUNT
         int currentShips = inventory.Ships.Count;
@@ -50,19 +126,13 @@ public class ShipInventoryService : IShipInventoryService
         {
             Id = Guid.NewGuid(),
             ShipInventoryId = playerId,
-            Grid = template,
-            IsLocked = false,
+            Identity = inShip.Identity,
+            State = inShip.State,
+            GeneralData = inShip.GeneralData,
+            Grid = inShip.ShipGrid,
+
+            IsLocked = inShip.State.Locked,
             Items = new List<ShipItem>(),
-            GeneralData = new ShipGeneralData()
-            {
-                Level = 1,
-                CurrentExperience = 0, //TODO: Update this
-                NextLevelExperience = (int) BalanceDataProvider.CalculateXpForLevel(1),
-                CurrentEnergy = 0,
-                MaxEnergy = BalanceDataProvider.CalculateEnergyCap(0),
-                EnergyRegenSpeed = BalanceDataProvider.CalculateEnergyGeneration(0),
-                LastEnergyUpdate = DateTime.UtcNow
-            }
         };
 
         inventory.Ships.Add(ship);
@@ -77,21 +147,27 @@ public class ShipInventoryService : IShipInventoryService
     // INCREASE SHIP CAPACITY
     // =========================================
 
-    public async Task AddShipSlotsAsync(string playerId, int amount)
+    public Task AddShipSlotsAsync(string playerId, int amount)
+        => WithPlayerLockAsync(playerId, () => AddShipSlotsLocked(playerId, amount));
+
+    private async Task AddShipSlotsLocked(string playerId, int amount)
     {
         if (amount <= 0)
             return;
 
-        var inventory = await m_repo.GetAsync(playerId);
+        var inventory = await ReloadInventoryLocked(playerId);
 
         inventory.NumOfShips += amount;
 
         await m_repo.SaveAsync();
     }
 
-    public async Task<bool> SelectActiveShipAsync(string playerId, Guid shipId)
+    public Task<bool> SelectActiveShipAsync(string playerId, Guid shipId)
+        => WithPlayerLockAsync(playerId, () => SelectActiveShipLocked(playerId, shipId));
+
+    private async Task<bool> SelectActiveShipLocked(string playerId, Guid shipId)
     {
-        var inventory = await m_repo.GetAsync(playerId);
+        var inventory = await ReloadInventoryLocked(playerId);
 
         if (shipId == Guid.Empty)
             return false;
@@ -119,9 +195,12 @@ public class ShipInventoryService : IShipInventoryService
     // =========================================
 
     #region Slot managing
-    public async Task UnlockShipSlotsAsync(Guid shipId)
+    public Task UnlockShipSlotsAsync(Guid shipId)
+        => WithShipLockAsync(shipId, () => UnlockShipSlotsLocked(shipId));
+
+    private async Task UnlockShipSlotsLocked(Guid shipId)
     {
-        var ship = await GetShipAsync(shipId);
+        var ship = await ReloadShipLocked(shipId);
         var grid = ship.Grid;
 
         int w = grid.Width;
@@ -145,9 +224,12 @@ public class ShipInventoryService : IShipInventoryService
         await m_repo.SaveAsync();
     }
 
-    public async Task LockShipSlotsAsync(Guid shipId)
+    public Task LockShipSlotsAsync(Guid shipId)
+        => WithShipLockAsync(shipId, () => LockShipSlotsLocked(shipId));
+
+    private async Task LockShipSlotsLocked(Guid shipId)
     {
-        var ship = await GetShipAsync(shipId);
+        var ship = await ReloadShipLocked(shipId);
         var grid = ship.Grid;
 
         for (int x = 0; x < grid.Width; x++)
@@ -156,7 +238,7 @@ public class ShipInventoryService : IShipInventoryService
             {
                 if (grid.Get(x, y) == UNLOCKABLE)
                 {
-                    grid.Set(x, y, UNLOCKABLE);
+                    grid.Set(x, y, LOCKED);
                 }
             }
         }
@@ -183,9 +265,15 @@ public class ShipInventoryService : IShipInventoryService
         }
     }
 
-    public async Task<bool> TryUnlockSlotAsync(Guid shipId, int x, int y)
+    public Task<bool> TryUnlockSlotAsync(Guid shipId, int x, int y)
+        => WithShipLockAsync(shipId, () => TryUnlockSlotLocked(shipId, x, y));
+
+    private async Task<bool> TryUnlockSlotLocked(Guid shipId, int x, int y)
     {
-        var ship = await GetShipAsync(shipId);
+        var ship = await ReloadShipLocked(shipId);
+
+        if(ship.State.NumOfSlotToUnlock <= 0)
+            return false;
 
         var grid = ship.Grid;
 
@@ -193,22 +281,32 @@ public class ShipInventoryService : IShipInventoryService
             return false;
 
         grid.Set(x, y, EMPTY);
+        ship.State.NumOfSlotToUnlock--;
 
         await m_repo.SaveAsync();
+        if(ship.State.NumOfSlotToUnlock <= 0)
+            await LockShipSlotsLocked(shipId);
         return true;
     }
     #endregion
 
     #region LockShip
-    public async Task UnlockShipInventoryAsync(Guid shipId)
+    public Task UnlockShipInventoryAsync(Guid shipId)
+        => WithShipLockAsync(shipId, () => UnlockShipInventoryLocked(shipId));
+
+    private async Task UnlockShipInventoryLocked(Guid shipId)
     {
-        var ship = await GetShipAsync(shipId);
+        var ship = await ReloadShipLocked(shipId);
         ship.IsLocked = false;
         await m_repo.SaveAsync();
     }
-    public async Task LockShipInventoryAsync(Guid shipId)
+
+    public Task LockShipInventoryAsync(Guid shipId)
+        => WithShipLockAsync(shipId, () => LockShipInventoryLocked(shipId));
+
+    private async Task LockShipInventoryLocked(Guid shipId)
     {
-        var ship = await GetShipAsync(shipId);
+        var ship = await ReloadShipLocked(shipId);
         ship.IsLocked = true;
         await m_repo.SaveAsync();
     }
@@ -221,12 +319,15 @@ public class ShipInventoryService : IShipInventoryService
     /// <param name="shipId"></param>
     /// <param name="missionId"></param>
     /// <returns></returns>
-    public async Task SendToMissionAsync(Guid shipId, Guid missionId)
+    public Task SendToMissionAsync(Guid shipId, Guid missionId)
+        => WithShipLockAsync(shipId, () => SendToMissionLocked(shipId, missionId));
+
+    private async Task SendToMissionLocked(Guid shipId, Guid missionId)
     {
-        var ship = await GetShipAsync(shipId);
+        var ship = await ReloadShipLocked(shipId);
         ship.State.MissionID = missionId;
         ship.State.Traveling = true;
-        await LockShipInventoryAsync(shipId);
+        await LockShipInventoryLocked(shipId);
     }
 
     /// <summary>
@@ -234,12 +335,14 @@ public class ShipInventoryService : IShipInventoryService
     /// </summary>
     /// <param name="shipId"></param>
     /// <returns></returns>
-    public async Task ReturnFromMissionAsync(Guid shipId)
-    {
-        var ship = await GetShipAsync(shipId);
-        ship.State.Traveling = false;
-        await UnlockShipInventoryAsync(shipId);
+    public Task ReturnFromMissionAsync(Guid shipId)
+        => WithShipLockAsync(shipId, () => ReturnFromMissionLocked(shipId));
 
+    private async Task ReturnFromMissionLocked(Guid shipId)
+    {
+        var ship = await ReloadShipLocked(shipId);
+        ship.State.Traveling = false;
+        await UnlockShipInventoryLocked(shipId);
     }
     #endregion
     #region Item managing
@@ -251,9 +354,12 @@ public class ShipInventoryService : IShipInventoryService
     /// <param name="x"></param>
     /// <param name="y"></param>
     /// <returns></returns>
-    public async Task<bool> TryPlaceItemAsync(Guid shipId, Item_Database item, int x, int y)
+    public Task<bool> TryPlaceItemAsync(Guid shipId, Item_Database item, int x, int y)
+        => WithShipLockAsync(shipId, () => TryPlaceItemLocked(shipId, item, x, y));
+
+    private async Task<bool> TryPlaceItemLocked(Guid shipId, Item_Database item, int x, int y)
     {
-        var ship = await GetShipAsync(shipId);
+        var ship = await ReloadShipLocked(shipId);
 
         if (item.IsEquipped)
             return false;
@@ -295,9 +401,12 @@ public class ShipInventoryService : IShipInventoryService
         return true;
     }
 
-    public async Task<bool> TryPlaceItemAsync(Guid shipId, Item_Database item)
+    public Task<bool> TryPlaceItemAsync(Guid shipId, Item_Database item)
+        => WithShipLockAsync(shipId, () => TryPlaceItemAnywhereLocked(shipId, item));
+
+    private async Task<bool> TryPlaceItemAnywhereLocked(Guid shipId, Item_Database item)
     {
-        var ship = await GetShipAsync(shipId);
+        var ship = await ReloadShipLocked(shipId);
         if(item.IsEquipped)
             return false;
         if (ship.IsLocked)
@@ -308,23 +417,26 @@ public class ShipInventoryService : IShipInventoryService
             for (int y = 0; y < ship.Grid.Height; y++)
             {
                 if(CanPlaceItem(ship, item, x, y))
-                    if(await TryPlaceItemAsync(shipId, item, x, y))
+                    if(await TryPlaceItemLocked(shipId, item, x, y))
                         return true;
             }
         }
 
         return false;
     }
-    
+
     /// <summary>
     /// REMOVE ITEM (FULL GRID SCAN LIKE UNITY)
     /// </summary>
     /// <param name="shipId"></param>
     /// <param name="itemId"></param>
     /// <returns></returns>
-    public async Task<bool> RemoveItemAsync(Guid shipId, Guid itemId)
+    public Task<bool> RemoveItemAsync(Guid shipId, Guid itemId)
+        => WithShipLockAsync(shipId, () => RemoveItemLocked(shipId, itemId));
+
+    private async Task<bool> RemoveItemLocked(Guid shipId, Guid itemId)
     {
-        var ship = await GetShipAsync(shipId);
+        var ship = await ReloadShipLocked(shipId);
         if (ship.IsLocked)
             return false;
         var shipItem = ship.Items.FirstOrDefault(x => x.Id == itemId);
@@ -413,29 +525,65 @@ public class ShipInventoryService : IShipInventoryService
     #endregion
 
     #region Experience
-    public async Task AddExp(Guid shipId, int amount)
+    public Task AddExp(Guid shipId, int amount)
+        => WithShipLockAsync(shipId, () => AddExpLocked(shipId, amount));
+
+    private async Task AddExpLocked(Guid shipId, int amount)
     {
-        var ship = await m_repo.GetShipAsync(shipId);
+        if (amount <= 0)
+            return;
+
+        var ship = await ReloadShipLocked(shipId);
+
+        if (ship.GeneralData.Level >= ship.GeneralData.MaxLevel)
+        {
+            ship.GeneralData.Level = ship.GeneralData.MaxLevel;
+            ship.GeneralData.CurrentExperience = 0;
+
+            await m_repo.SaveAsync();
+            return;
+        }
 
         ship.GeneralData.CurrentExperience += amount;
 
         //Level up
-        while(ship.GeneralData.CurrentExperience >= ship.GeneralData.NextLevelExperience)
+        while ( ship.GeneralData.Level < ship.GeneralData.MaxLevel &&
+                ship.GeneralData.CurrentExperience >= ship.GeneralData.NextLevelExperience)
         {
-            int expAboveLevel = ship.GeneralData.CurrentExperience - ship.GeneralData.NextLevelExperience;
+            ship.GeneralData.CurrentExperience -=
+                ship.GeneralData.NextLevelExperience;
+
             ship.GeneralData.Level++;
-            ship.GeneralData.NextLevelExperience = (int) BalanceDataProvider.CalculateXpForLevel(ship.GeneralData.Level);
-            ship.GeneralData.CurrentExperience = expAboveLevel;
+
+            ship.State.NumOfSlotToUnlock++;
+
+            ship.GeneralData.NextLevelExperience =
+                (int)BalanceDataProvider.CalculateXpForLevel(
+                    ship.GeneralData.Level
+                );
+        }
+
+        if (ship.GeneralData.Level >= ship.GeneralData.MaxLevel)
+        {
+            ship.GeneralData.Level = ship.GeneralData.MaxLevel;
+            ship.GeneralData.CurrentExperience = 0;
         }
 
         await m_repo.SaveAsync();
+        if(ship.State.NumOfSlotToUnlock > 0)
+            // Already inside the lock, so the non reentrant semaphore must not be
+            // taken again through the public method.
+            await UnlockShipSlotsLocked(shipId);
     }
     #endregion
 
     #region Energy
-    public async Task AddEnergy(Guid shipId, float amount)
+    public Task AddEnergy(Guid shipId, float amount)
+        => WithShipLockAsync(shipId, () => AddEnergyLocked(shipId, amount));
+
+    private async Task AddEnergyLocked(Guid shipId, float amount)
     {
-        var ship = await m_repo.GetShipAsync(shipId);
+        var ship = await ReloadShipLocked(shipId);
 
         ship.GeneralData.CurrentEnergy = Math.Min(
             ship.GeneralData.CurrentEnergy + amount,
@@ -445,9 +593,12 @@ public class ShipInventoryService : IShipInventoryService
         await m_repo.SaveAsync();
     }
 
-    public async Task<bool> UseEnergy(Guid shipId, float amount)
+    public Task<bool> UseEnergy(Guid shipId, float amount)
+        => WithShipLockAsync(shipId, () => UseEnergyLocked(shipId, amount));
+
+    private async Task<bool> UseEnergyLocked(Guid shipId, float amount)
     {
-        var ship = await m_repo.GetShipAsync(shipId);
+        var ship = await ReloadShipLocked(shipId);
 
         if(ship.GeneralData.CurrentEnergy > amount)
         {
@@ -459,17 +610,23 @@ public class ShipInventoryService : IShipInventoryService
         return false;
     }
 
-    public async Task UpdateEnergyRegenSpeed(Guid shipId, float energyRegenSpeed)
+    public Task UpdateEnergyRegenSpeed(Guid shipId, float energyRegenSpeed)
+        => WithShipLockAsync(shipId, () => UpdateEnergyRegenSpeedLocked(shipId, energyRegenSpeed));
+
+    private async Task UpdateEnergyRegenSpeedLocked(Guid shipId, float energyRegenSpeed)
     {
-        var ship = await m_repo.GetShipAsync(shipId);
+        var ship = await ReloadShipLocked(shipId);
         ship.GeneralData.EnergyRegenSpeed = BalanceDataProvider.CalculateEnergyGeneration(energyRegenSpeed);
 
         await m_repo.SaveAsync();
     }
 
-    public async Task UpdateEnergyMaximum(Guid shipId, float energyMaximum)
+    public Task UpdateEnergyMaximum(Guid shipId, float energyMaximum)
+        => WithShipLockAsync(shipId, () => UpdateEnergyMaximumLocked(shipId, energyMaximum));
+
+    private async Task UpdateEnergyMaximumLocked(Guid shipId, float energyMaximum)
     {
-        var ship = await m_repo.GetShipAsync(shipId);
+        var ship = await ReloadShipLocked(shipId);
         ship.GeneralData.MaxEnergy = BalanceDataProvider.CalculateEnergyCap(energyMaximum);
 
         await m_repo.SaveAsync();

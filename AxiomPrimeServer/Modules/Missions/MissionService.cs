@@ -179,6 +179,40 @@ public class MissionService : IMissionService
         });
 
     /// <summary>
+    /// Atomically checks that the mission is finished and that its rewards were not
+    /// claimed yet, and marks them as claimed.
+    /// Returns the mission only for the one caller allowed to grant rewards.
+    /// </summary>
+    /// <param name="playerId"></param>
+    /// <param name="missionID"></param>
+    /// <returns></returns>
+    public Task<Mission_Database?> TryConsumeMission(string playerId, Guid missionID)
+        => m_playerLockProvider.WithLock<Mission_Database?>(playerId, async () =>
+        {
+            var existing = await m_missionRepository.GetAsync(playerId);
+            var current = existing.FirstOrDefault(x => x.Identity.Id == missionID);
+            if (current == null)
+                return null;
+
+            await UpdateMissionStatus(current);
+
+            if (current.State.CurrentState != MissionState.State.Finished)
+                return null;
+
+            if (!current.State.SeenFight && !current.State.Aborted)
+                return null;
+
+            // Rewards were already granted for this mission.
+            if (current.State.RewardClaimed)
+                return null;
+
+            current.State.RewardClaimed = true;
+            await m_missionRepository.UpdateAsync(current);
+
+            return current;
+        });
+
+    /// <summary>
     /// Try to set mission fight as seen if it is behind half of travel -> flyingTo state.
     /// </summary>
     /// <param name="playerId"></param>

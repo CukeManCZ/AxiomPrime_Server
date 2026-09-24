@@ -3,11 +3,12 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using AxiomPrime.Templates;
-using YamlDotNet.Serialization;
 using AxiomPrime.Generators.Items;
 using AxiomPrime.Generators.Enemies;
 using AxiomPrime.Generators.Missions;
 using AxiomPrime.Services;
+using AxiomPrime.Generators;
+using AxiomPrime.Generators.Fight;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services
@@ -101,10 +102,15 @@ builder.Services.AddSingleton<TemplateLoader>(sp =>
 
     return new TemplateLoader(templateRootPath);
 });
+builder.Services.AddSingleton<TemplateProvider>();
 builder.Services.AddSingleton<StatSummer>();
 builder.Services.AddSingleton<ItemGenerator>();
 builder.Services.AddSingleton<EnemyGenerator>();
 builder.Services.AddSingleton<MissionGenerator>();
+builder.Services.AddSingleton<ShipGenerator>();
+builder.Services.AddSingleton<FightSequenceGenerator>();
+
+builder.Services.AddSingleton<GeneratorManager>();
 
 // HTTP Clients
 builder.Services.AddHttpClient<BrainCloudClient>();

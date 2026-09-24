@@ -1,10 +1,10 @@
+using AxiomPrime.Generators;
 using AxiomPrime.Generators.Enemies;
 using AxiomPrime.Generators.Fight;
 using AxiomPrime.Generators.Items;
 using AxiomPrime.Models.Enemies;
 using AxiomPrime.Models.Fight;
 using AxiomPrime.Services;
-using AxiomPrime_DTOs.Inventory;
 using AxiomPrime_Metadata.Fight;
 using Microsoft.AspNetCore.Mvc;
 using Utilities.AuthorizationTools;
@@ -19,9 +19,7 @@ public class MissionController : ControllerBase
     private readonly GlobalPlayerDataAPI m_globalPlayerDataAPI;
     private readonly IMissionRegenerationService m_missionRegenerationService;
 
-    private ItemGenerator m_itemGenerator;
-    private FightSequenceGenerator m_fightGenerator;
-    private EnemyGenerator m_enemyGenerator;
+    private readonly GeneratorManager m_generatorManager;
 
     private StatSummer m_statSummer;
 
@@ -32,17 +30,15 @@ public class MissionController : ControllerBase
         GlobalPlayerDataAPI globalPlayerDataAPI,
         StatSummer statSummer,
         IMissionRegenerationService missionRegenerationService,
-        ItemGenerator itemGenerator,
-        EnemyGenerator enemyGenerator)
+        GeneratorManager generatorManager
+        )
     {
         m_missionAPI = missionAPI;
         m_inventoryAPI = inventoryAPI;
         m_shipInventoryAPI = shipInventoryAPI;
         m_globalPlayerDataAPI = globalPlayerDataAPI;
         m_missionRegenerationService = missionRegenerationService;
-        m_itemGenerator = itemGenerator;
-        m_fightGenerator = new FightSequenceGenerator();
-        m_enemyGenerator = enemyGenerator;
+        m_generatorManager = generatorManager;
         m_statSummer = statSummer;
     }
 
@@ -73,7 +69,7 @@ public class MissionController : ControllerBase
             return Unauthorized();
 
         List<Mission_Database> current = await m_missionAPI.GetAsync(profileId);
-        Mission_Database mission = current.First(x => x.Identity.Id == missionID);
+        Mission_Database? mission = current.FirstOrDefault(x => x.Identity.Id == missionID);
         if(mission == null)
             return BadRequest("Mission not found");
 
@@ -118,7 +114,7 @@ public class MissionController : ControllerBase
             return Unauthorized();
 
         List<Mission_Database> current = await m_missionAPI.GetAsync(profileId);
-        Mission_Database mission = current.First(x => x.Identity.Id == missionID);
+        Mission_Database? mission = current.FirstOrDefault(x => x.Identity.Id == missionID);
         if(mission == null)
             return BadRequest("Mission not found");
 
@@ -141,10 +137,10 @@ public class MissionController : ControllerBase
             return Unauthorized();
 
         List<Mission_Database> current = await m_missionAPI.GetAsync(profileId);
-        Mission_Database mission = current.First(x => x.Identity.Id == missionID);
+        Mission_Database? mission = current.FirstOrDefault(x => x.Identity.Id == missionID);
         if(mission == null)
             return BadRequest("Mission not found");
-        
+
         bool skippedMission = await m_missionAPI.SkipTraveling(profileId, missionID);
         if(skippedMission)
             return Ok("Mission skipped");
@@ -164,20 +160,20 @@ public class MissionController : ControllerBase
             return Unauthorized();
 
         List<Mission_Database> current = await m_missionAPI.GetAsync(profileId);
-        Mission_Database mission = current.First(x => x.Identity.Id == missionID);
+        Mission_Database? mission = current.FirstOrDefault(x => x.Identity.Id == missionID);
         if(mission == null)
             return BadRequest("Mission not found");
-    
+
         bool missionFightSeen = await m_missionAPI.SetMissionFightAsSeen(profileId, missionID);
         if (missionFightSeen)
         {
             //Generate fight
-            Enemy enemy = m_enemyGenerator.GenerateEnemy("Frigate", mission.GeneralData.Level);
+            Enemy enemy = m_generatorManager.enemyGenerator.GenerateEnemy("Frigate", mission.GeneralData.Level);
             var ship = await m_shipInventoryAPI.GetShipAsync(mission.State.ShipID);
             if(ship ==  null) return BadRequest("Ship Does not exists");
             ShipStats playerStats = m_statSummer.GetShipStats(new ShipStatProvider(ship));
             ShipStats enemyStats = m_statSummer.GetShipStats(enemy.Stats);
-            FightSequence sequence = m_fightGenerator.GetSequence(playerStats, enemyStats);
+            FightSequence sequence = m_generatorManager.fightSequenceGenerator.GetSequence(playerStats, enemyStats);
             FightSequenceDto fightSequenceDto = new FightSequenceDto
             {
                 Identity = new FightSequenceIdentity()
@@ -198,8 +194,8 @@ public class MissionController : ControllerBase
                 {
                     mission.Reward.Item = Item_Database.ToDatabaseItem(
                         mission.Reward.GeneralData.ItemType != null 
-                            ? m_itemGenerator.GenerateItem(1, mission.Reward.GeneralData.ItemType.Value) 
-                            : m_itemGenerator.GenerateItem(1));
+                            ? m_generatorManager.itemGenerator.GenerateItem(1, mission.Reward.GeneralData.ItemType.Value) 
+                            : m_generatorManager.itemGenerator.GenerateItem(1));
 
                     await m_missionAPI.UpdateMissionReward(profileId, missionID, mission.Reward);
                 }
@@ -237,43 +233,53 @@ public class MissionController : ControllerBase
         if (!User.TryGetProfileId(out var profileId))
             return Unauthorized();
 
-        List<Mission_Database> current = await m_missionAPI.GetAsync(profileId);
-        Mission_Database mission = current.First(x => x.Identity.Id == missionID);
-        if(mission == null)
-            return BadRequest("Mission not found");
+        // Claiming the mission marks its rewards as handed out inside the same lock in
+        // which it verifies they can be handed out. Only one concurrent request ever
+        // gets a mission back here, every other one gets null.
+        Mission_Database? mission = await m_missionAPI.TryConsumeMission(profileId, missionID);
+        if (mission == null)
+            return BadRequest("Mission could not be finished");
 
-        bool missionFinished = await m_missionAPI.IsMissionFinished(profileId, missionID);
+        var ship = await m_shipInventoryAPI.GetShipAsync(mission.State.ShipID);
+        ArgumentNullException.ThrowIfNull(ship);
 
-        if (missionFinished)
+        try
         {
-            var ship = await m_shipInventoryAPI.GetShipAsync(mission.State.ShipID);
-            ArgumentNullException.ThrowIfNull(ship);
-            
             //If not aborted mission give rewards
             if (!mission.State.Aborted)
             {
-                await m_globalPlayerDataAPI.AddMoney(profileId, mission.Reward.GeneralData.Credits);
-                await m_globalPlayerDataAPI.AddPremium(profileId, mission.Reward.GeneralData.PremiumCurrency);
-                await m_globalPlayerDataAPI.AddExp(profileId, mission.Reward.GeneralData.Experience);
-                await m_globalPlayerDataAPI.AddScraps(profileId, mission.Reward.GeneralData.Scraps);
+                await m_globalPlayerDataAPI.AddMissionRewards(
+                    profileId,
+                    mission.Reward.GeneralData.Credits,
+                    mission.Reward.GeneralData.PremiumCurrency,
+                    mission.Reward.GeneralData.Experience,
+                    mission.Reward.GeneralData.Scraps);
 
                 await m_shipInventoryAPI.AddExperience(ship.Identity.Id, mission.Reward.GeneralData.Experience);
 
                 if(mission.Reward.Item != null)
                     await m_inventoryAPI.AddItem(profileId, mission.Reward.Item);
             }
-
-            //Ship unlock
-            await m_shipInventoryAPI.ReturnFromMission(ship.Identity.Id);
-
-            await m_missionAPI.RemoveMission(profileId, missionID);
-            ShipInventory inv = await m_shipInventoryAPI.GetAsync(profileId);
-            Ship_Database activeShip = await m_shipInventoryAPI.GetShipAsync(inv.ActiveShip);
-            await m_missionRegenerationService.RegenerateMissionsAsync(profileId, m_statSummer.GetShipStats(new ShipStatProvider(activeShip)));
-
-            return Ok("Mission finished");
         }
-        return BadRequest("Mission could not be finished");
+        catch
+        {
+            // The rewards are already marked as claimed, so a retry by the client can not
+            // grant them a second time. Bring the ship home and drop the mission anyway,
+            // otherwise it would stay in the mission list unable to ever be finished.
+            await m_shipInventoryAPI.ReturnFromMission(ship.Identity.Id);
+            await m_missionAPI.RemoveMission(profileId, missionID);
+            throw;
+        }
+
+        //Ship unlock
+        await m_shipInventoryAPI.ReturnFromMission(ship.Identity.Id);
+
+        await m_missionAPI.RemoveMission(profileId, missionID);
+        ShipInventory inv = await m_shipInventoryAPI.GetAsync(profileId);
+        Ship_Database activeShip = await m_shipInventoryAPI.GetShipAsync(inv.ActiveShip);
+        await m_missionRegenerationService.RegenerateMissionsAsync(profileId, m_statSummer.GetShipStats(new ShipStatProvider(activeShip)));
+
+        return Ok("Mission finished");
     }
 
 }

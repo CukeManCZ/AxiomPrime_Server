@@ -1,11 +1,11 @@
-using AxiomPrime.Generators.Items;
-using AxiomPrime.Models.Items;
+using AxiomPrime.Generators;
+using AxiomPrime.Models.Ship;
+using AxiomPrime.Templates;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using Utilities.DataStructures;
 
 [ApiController]
 [Route("auth")]
@@ -17,7 +17,8 @@ public class AuthController : ControllerBase
     private readonly InventoryAPI m_inventoryAPI;
     private readonly ShipInventoryAPI m_shipInventoryAPI;
     private readonly GlobalPlayerDataAPI m_globalPlayerDataAPI;
-    private readonly ItemGenerator m_itemGenerator;
+    private readonly GeneratorManager m_generatorManager;
+    private readonly TemplateProvider m_templateProvider;
 
     public AuthController(
         BrainCloudService brainCloud,
@@ -26,7 +27,8 @@ public class AuthController : ControllerBase
         InventoryAPI inventoryAPI,
         ShipInventoryAPI shipInventoryAPI,
         GlobalPlayerDataAPI globalPlayerDataAPI,
-        ItemGenerator itemGenerator)
+        GeneratorManager generatorManager,
+        TemplateProvider templateProvider)
     {
         m_brainCloud = brainCloud;
         m_config = config;
@@ -34,7 +36,8 @@ public class AuthController : ControllerBase
         m_inventoryAPI = inventoryAPI;
         m_shipInventoryAPI = shipInventoryAPI;
         m_globalPlayerDataAPI = globalPlayerDataAPI;
-        m_itemGenerator = itemGenerator;
+        m_generatorManager = generatorManager;
+        m_templateProvider = templateProvider;
     }
 
     [HttpPost("login")]
@@ -63,16 +66,24 @@ public class AuthController : ControllerBase
             await m_globalPlayerDataAPI.InitializePlayer(player.Id);
 
             //Add default ships
-            CustomGrid<string> ship = new CustomGrid<string>(3,3, "Empty");
-            ShipGrid shipGrid = ShipGrid.FromCustomGrid(ship);
-            Ship_Database shipModel = await m_shipInventoryAPI.CreateShip(player.Id, shipGrid);
-            await m_shipInventoryAPI.SelectActiveShip(player.Id, shipModel.Identity.Id);
-            await m_shipInventoryAPI.CreateShip(player.Id, shipGrid);
-            await m_shipInventoryAPI.CreateShip(player.Id, shipGrid);
+            string shipID = m_templateProvider.GetShipProgression().Ships[0];
+            {
+                Ship ship = m_generatorManager.shipGenerator.GenerateShip(shipID);
+                Ship_Database shipModel = await m_shipInventoryAPI.CreateShip(player.Id, ship);
+                await m_shipInventoryAPI.SelectActiveShip(player.Id, shipModel.Identity.Id);
+            }
+            {
+                Ship ship = m_generatorManager.shipGenerator.GenerateShip(shipID);
+                Ship_Database shipModel = await m_shipInventoryAPI.CreateShip(player.Id, ship);
+            }
+            {
+                Ship ship = m_generatorManager.shipGenerator.GenerateShip(shipID);
+                Ship_Database shipModel = await m_shipInventoryAPI.CreateShip(player.Id, ship);
+            }
             
             //Add default items
             for(int i = 0; i < 40; i++){
-                await m_inventoryAPI.AddItem(player.Id, Item_Database.ToDatabaseItem(m_itemGenerator.GenerateItem(1)));
+                await m_inventoryAPI.AddItem(player.Id, Item_Database.ToDatabaseItem(m_generatorManager.itemGenerator.GenerateItem(1)));
             }
         }
 

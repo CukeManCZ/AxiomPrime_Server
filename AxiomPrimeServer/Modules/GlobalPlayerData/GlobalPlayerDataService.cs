@@ -143,14 +143,46 @@ public class GlobalPlayerDataService : IGlobalPlayerDataService
             //Level up
             while(exp.CurrentExperience >= exp.NextLevelExperience)
             {
-                int expAboveLevel = exp.CurrentExperience - exp.NextLevelExperience;
+                exp.CurrentExperience -= exp.NextLevelExperience;
                 exp.Level++;
                 exp.NextLevelExperience = (int) BalanceDataProvider.CalculateXpForLevel(exp.Level);
-                exp.CurrentExperience = expAboveLevel;
             }
 
             await m_experience_repository.SaveAsync(exp);
         });
-    
+
+    /// <summary>
+    /// Grants all rewards of a single mission in one atomic operation, so that no
+    /// other operation for the same player can read a half-applied reward state.
+    /// </summary>
+    public Task AddMissionRewards(
+        string playerId,
+        int credits,
+        int premiumCredits,
+        int experience,
+        int scraps)
+    => m_playerLockProvider.WithLock(playerId, async () =>
+        {
+            var curr = await m_currencies_repository.GetAsync(playerId);
+            curr.Credits += credits;
+            curr.PremiumCredits += premiumCredits;
+            curr.Scrap += scraps;
+            await m_currencies_repository.SaveAsync(curr);
+
+            var exp = await m_experience_repository.GetAsync(playerId);
+
+            exp.CurrentExperience += experience;
+
+            //Level up
+            while(exp.CurrentExperience >= exp.NextLevelExperience)
+            {
+                exp.CurrentExperience -= exp.NextLevelExperience;
+                exp.Level++;
+                exp.NextLevelExperience = (int) BalanceDataProvider.CalculateXpForLevel(exp.Level);
+            }
+
+            await m_experience_repository.SaveAsync(exp);
+        });
+
     #endregion
 }

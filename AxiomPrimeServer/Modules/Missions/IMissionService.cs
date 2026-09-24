@@ -41,6 +41,16 @@ public interface IMissionService
     Task<bool> IsMissionFinished(string playerId, Guid missionID);
 
     /// <summary>
+    /// Atomically checks that the mission is finished and that its rewards were not
+    /// claimed yet, and marks them as claimed.
+    /// Returns the mission only for the one caller allowed to grant rewards.
+    /// </summary>
+    /// <param name="playerId"></param>
+    /// <param name="missionID"></param>
+    /// <returns></returns>
+    Task<Mission_Database?> TryConsumeMission(string playerId, Guid missionID);
+
+    /// <summary>
     /// Player aborted mission, he will travel back according how long he traveled;
     /// </summary>
     /// <param name="playerId"></param>

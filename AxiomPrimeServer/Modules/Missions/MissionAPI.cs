@@ -79,6 +79,16 @@ public class MissionAPI
     public Task<bool> IsMissionFinished(string playerId, Guid missionID)
         => m_missionService.IsMissionFinished(playerId, missionID);
 
+    /// <summary>
+    /// Atomically marks mission rewards as claimed. Returns the mission only for the
+    /// one caller that is allowed to grant the rewards, null otherwise.
+    /// </summary>
+    /// <param name="playerId"></param>
+    /// <param name="missionID"></param>
+    /// <returns></returns>
+    public Task<Mission_Database?> TryConsumeMission(string playerId, Guid missionID)
+        => m_missionService.TryConsumeMission(playerId, missionID);
+
 
     /// <summary>
     /// Player aborst mission only if it is flying to destination

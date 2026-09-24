@@ -14,4 +14,15 @@ public interface IGlobalPlayerDataService
     Task<bool> UseScraps(string playerId, int amount);
 
     Task AddExp(string playerId, int amount);
+
+    /// <summary>
+    /// Grants all rewards of a single mission in one atomic operation, so that no
+    /// other operation for the same player can read a half-applied reward state.
+    /// </summary>
+    Task AddMissionRewards(
+        string playerId,
+        int credits,
+        int premiumCredits,
+        int experience,
+        int scraps);
 }

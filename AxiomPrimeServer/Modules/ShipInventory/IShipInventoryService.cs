@@ -1,4 +1,4 @@
-using AxiomPrime_Metadata.Ship;
+using AxiomPrime.Models.Ship;
 
 public interface IShipInventoryService
 {
@@ -13,7 +13,7 @@ public interface IShipInventoryService
     // SHIP CREATION / LIMIT SYSTEM
     // =========================================
 
-    Task<Ship_Database> CreateShipAsync(string playerId, ShipGrid template);
+    Task<Ship_Database> CreateShipAsync(string playerId, Ship ship);
 
     /// <summary>
     /// Increases how many ships a player is allowed to own.

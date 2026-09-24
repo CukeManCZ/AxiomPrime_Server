@@ -39,11 +39,11 @@ public class Ship_Database
 
     public string? Name
     {
-        get => Identity?.Name;
+        get => Identity?.TemplateId;
         set
         {
             Identity ??= new ShipIdentity();
-            Identity.Name = value;
+            Identity.TemplateId = value;
         }
     }
 

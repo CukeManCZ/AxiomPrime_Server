@@ -1,5 +1,6 @@
 using System;
 using System.Threading.Tasks;
+using AxiomPrime.Models.Ship;
 
 public class ShipInventoryAPI
 {
@@ -100,8 +101,8 @@ public class ShipInventoryAPI
 
     #endregion
 
-    public Task<Ship_Database> CreateShip(string playerId, ShipGrid template)
-        => m_shipService.CreateShipAsync(playerId, template);
+    public Task<Ship_Database> CreateShip(string playerId, Ship shipIn)
+        => m_shipService.CreateShipAsync(playerId, shipIn);
 
     public Task AddShipSlots(string playerId, int amount)
         => m_shipService.AddShipSlotsAsync(playerId, amount);

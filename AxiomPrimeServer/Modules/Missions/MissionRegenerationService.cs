@@ -1,3 +1,4 @@
+using AxiomPrime.Generators;
 using AxiomPrime.Generators.Missions;
 using AxiomPrime.Models.Fight;
 using AxiomPrime_Metadata.Missions;
@@ -12,18 +13,18 @@ public class MissionRegenerationService : IMissionRegenerationService
     private readonly MissionAPI m_missionAPI;
     private readonly GlobalPlayerDataAPI m_globalAPI;
     private readonly ShipInventoryAPI m_shipInventoryAPI;
-    private readonly MissionGenerator m_missionGenerator;
+    private readonly GeneratorManager m_generatorManager;
 
     // Prevents multiple regeneration operations from running
     // simultaneously inside this server process.
     private static readonly SemaphoreSlim _regenerationLock = new(1, 1);
 
-    public MissionRegenerationService(MissionAPI missionAPI, GlobalPlayerDataAPI globalPlayerDataAPI, ShipInventoryAPI shipInventoryAPI, MissionGenerator missionGenerator)
+    public MissionRegenerationService(MissionAPI missionAPI, GlobalPlayerDataAPI globalPlayerDataAPI, ShipInventoryAPI shipInventoryAPI, GeneratorManager generatorManager)
     {
         m_missionAPI = missionAPI;
         m_globalAPI = globalPlayerDataAPI;
         m_shipInventoryAPI = shipInventoryAPI;
-        m_missionGenerator = missionGenerator;
+        m_generatorManager = generatorManager;
     }
 
     public async Task RegenerateMissionsAsync(string profileId, ShipStats stats)
@@ -40,7 +41,7 @@ public class MissionRegenerationService : IMissionRegenerationService
                 if (mission.State.CurrentState != MissionState.State.NotActive)
                     continue;
 
-                var updatedMission = m_missionGenerator.UpdateMission(
+                var updatedMission = m_generatorManager.missionGenerator.UpdateMission(
                     Mission_Database.FromDatabaseMission(mission),
                     stats);
 
@@ -60,7 +61,7 @@ public class MissionRegenerationService : IMissionRegenerationService
                 var missionsDedyceted = current.Where(x => x.Identity.GeneratedForShipID == ship.Identity.Id);
                 if(missionsDedyceted.FirstOrDefault(x => x.Identity.Difficulty == MissionDifficulty.Easy) == null)
                 {
-                    var mission = m_missionGenerator.GenerateGenericMission(ship.GeneralData.Level, MissionDifficulty.Easy, stats);
+                    var mission = m_generatorManager.missionGenerator.GenerateGenericMission(ship.GeneralData.Level, MissionDifficulty.Easy, stats);
                     mission.Identity.GeneratedForShipID = ship.Identity.Id;
                     await m_missionAPI.AddMission(
                         profileId,
@@ -68,7 +69,7 @@ public class MissionRegenerationService : IMissionRegenerationService
                 }
                 if(missionsDedyceted.FirstOrDefault(x => x.Identity.Difficulty == MissionDifficulty.Medium) == null)
                 {
-                    var mission = m_missionGenerator.GenerateGenericMission(ship.GeneralData.Level, MissionDifficulty.Medium, stats);
+                    var mission = m_generatorManager.missionGenerator.GenerateGenericMission(ship.GeneralData.Level, MissionDifficulty.Medium, stats);
                     mission.Identity.GeneratedForShipID = ship.Identity.Id;
                     await m_missionAPI.AddMission(
                         profileId,
@@ -76,7 +77,7 @@ public class MissionRegenerationService : IMissionRegenerationService
                 }
                 if(missionsDedyceted.FirstOrDefault(x => x.Identity.Difficulty == MissionDifficulty.Hard) == null)
                 {
-                    var mission = m_missionGenerator.GenerateGenericMission(ship.GeneralData.Level, MissionDifficulty.Hard, stats);
+                    var mission = m_generatorManager.missionGenerator.GenerateGenericMission(ship.GeneralData.Level, MissionDifficulty.Hard, stats);
                     mission.Identity.GeneratedForShipID = ship.Identity.Id;
                     await m_missionAPI.AddMission(
                         profileId,

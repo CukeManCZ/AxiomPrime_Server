@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Utilities.AuthorizationTools;
 using AxiomPrime.Generators.Items;
 using AxiomPrime.Models.Items;
+using AxiomPrime.Generators;
 
 [ApiController]
 [Route("api/game")]
@@ -10,13 +11,13 @@ public class GameController : ControllerBase
 {
     private readonly InventoryAPI m_inventoryAPI;
     private readonly ShipInventoryAPI m_shipInventoryAPI;
-    private readonly ItemGenerator m_itemGenerator;
+    private readonly GeneratorManager m_generatorManager;
 
-    public GameController(InventoryAPI inventoryAPI, ShipInventoryAPI shipInventoryAPI, ItemGenerator itemGenerator)
+    public GameController(InventoryAPI inventoryAPI, ShipInventoryAPI shipInventoryAPI, GeneratorManager generatorManager)
     {
         m_inventoryAPI = inventoryAPI;
         m_shipInventoryAPI = shipInventoryAPI;
-        m_itemGenerator = itemGenerator;
+        m_generatorManager = generatorManager;
     }
 
     [Authorize]
@@ -26,7 +27,7 @@ public class GameController : ControllerBase
         if (!User.TryGetProfileId(out var profileId))
             return Unauthorized();
 
-        Item item = m_itemGenerator.GenerateItem(1);
+        Item item = m_generatorManager.itemGenerator.GenerateItem(1);
         Item_Database item_Database = Item_Database.ToDatabaseItem(item);
 
         if (await m_inventoryAPI.AddItem(profileId, item_Database))

@@ -68,13 +68,13 @@ public class Item_Database
         return item;
     }
 
-    private static ItemGridData CreateItemGridData(float sizeValue)
+    private static ItemGrid CreateItemGridData(float sizeValue)
     {
         var effectiveSize = Math.Max(1, (int)Math.Ceiling(sizeValue));
         var width = Math.Max(1, (int)Math.Ceiling(Math.Sqrt(effectiveSize)));
         var height = Math.Max(1, (int)Math.Ceiling(effectiveSize / (double)width));
 
-        var grid = new ItemGridData
+        var grid = new ItemGrid
         {
             Width = width,
             Height = height
@@ -160,7 +160,7 @@ public class Item_Database
     public float Power { get; set; }
 
     [NotMapped]
-    public ItemGridData Size { get; set; } = new();
+    public ItemGrid Size { get; set; } = new();
 
     [NotMapped]
     public ItemStatsData StatsData { get; set; } = new();
@@ -184,7 +184,7 @@ public class Item_Database
                 GeneralData = new ItemGeneralData();
                 State = new ItemState();
                 Power = 0f;
-                Size = new ItemGridData();
+                Size = new ItemGrid();
                 StatsData = new ItemStatsData();
                 return;
             }
@@ -194,7 +194,7 @@ public class Item_Database
             GeneralData = snapshot.GeneralData ?? new ItemGeneralData();
             State = snapshot.State ?? new ItemState();
             Power = snapshot.Power;
-            Size = snapshot.Size ?? new ItemGridData();
+            Size = snapshot.Size ?? new ItemGrid();
             StatsData = snapshot.StatsData ?? new ItemStatsData();
         }
     }
@@ -205,7 +205,7 @@ public class Item_Database
         public ItemGeneralData? GeneralData { get; set; }
         public ItemState? State { get; set; }
         public float Power { get; set; }
-        public ItemGridData? Size { get; set; }
+        public ItemGrid? Size { get; set; }
         public ItemStatsData? StatsData { get; set; }
     }
 }
